@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, School, BookOpen, Home, User, Settings,
-  Database, Menu, X, LogOut, Search, ChevronRight, Trash2, AlertTriangle
+  Database, Menu, X, LogOut, ChevronRight, Trash2, AlertTriangle
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useRealTimeClock } from '@/hooks/useRealTimeClock'
@@ -32,6 +32,20 @@ export default function AppLayout() {
   const navigate = useNavigate()
   const now = useRealTimeClock()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('tahfidz_sidebar_collapsed') === 'true'
+  })
+
+  // Handle window resize to auto-collapse on tablet if needed, though media queries handle the drawer
+  const toggleSidebar = () => {
+    if (window.innerWidth >= 1024) { // Desktop
+      const newVal = !isCollapsed
+      setIsCollapsed(newVal)
+      localStorage.setItem('tahfidz_sidebar_collapsed', String(newVal))
+    } else { // Tablet/Mobile
+      setSidebarOpen(true)
+    }
+  }
 
   const isAdmin = profile?.role === 'admin'
   const visibleItems = NAV_ITEMS.filter(item => !item.adminOnly || isAdmin)
@@ -124,9 +138,9 @@ export default function AppLayout() {
   )
 
   return (
-    <div className={styles.layout}>
+    <div className={`${styles.layout} ${isCollapsed ? styles.layoutCollapsed : ''}`}>
       {/* ── Sidebar Desktop ── */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${isCollapsed ? styles.sidebarCollapsed : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.sidebarLogo}>
             <BookOpen size={22} color="white" />
@@ -249,15 +263,12 @@ export default function AppLayout() {
           <button
             id="btn-menu-toggle"
             className={styles.menuBtn}
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Buka menu"
+            onClick={toggleSidebar}
+            aria-label="Toggle menu"
           >
             <Menu size={22} />
           </button>
           <span className={styles.headerTitle}>Tracking Tahfidz MAM!</span>
-          <button className={styles.searchBtn} aria-label="Cari">
-            <Search size={20} />
-          </button>
         </header>
 
         {/* Page Content */}

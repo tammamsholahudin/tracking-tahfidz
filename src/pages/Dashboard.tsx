@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   School, Home, TrendingUp, Users, Calendar as CalendarIcon, 
-  Clock, MapPin, Bell, Settings, FileText, CheckCircle2, AlertTriangle, Plus
+  Clock, MapPin, Bell, Settings, FileText, CheckCircle2, AlertTriangle, Plus, Loader2
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { formatTanggal } from '@/data/surahs'
+import toast from 'react-hot-toast'
 import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import SetJadwalModal from '@/components/SetJadwalModal'
 import { exportToICS } from '@/lib/scheduleEngine'
@@ -329,21 +330,51 @@ export default function Dashboard() {
   }
 
   // Todo Handlers
-  const toggleTodo = (id: string) => {
+  const [isAddingTodo, setIsAddingTodo] = useState(false)
+
+  const toggleTodo = async (id: string) => {
+    const todoToToggle = todos.find(t => t.id === id)
+    if (!todoToToggle) return
+
+    const newDoneState = !todoToToggle.done
+    
+    // Optimistic UI Update
     const newTodos = todos.map(t => {
-      if (t.id === id) return { ...t, done: !t.done }
+      if (t.id === id) return { ...t, done: newDoneState }
       return t
     })
-    mutateData('todos', 'UPDATE', { id, done: true }, 'tahfidz_todos')
     setTodos(newTodos)
+
+    // Save to DB
+    const res = await mutateData('todos', 'UPDATE', { id, done: newDoneState }, 'tahfidz_todos')
+    if (res.success) {
+      toast.success('Status To Do diperbarui', { duration: 1500 })
+    } else {
+      toast.error('Gagal memperbarui To Do')
+      // Rollback UI (handled automatically by local_cache_updated event via fetchDashboardData, but we can also force it if needed)
+    }
   }
 
-  const addTodo = async () => {
-    if (!newTodo.trim()) return
+  const addTodo = async (e: React.FormEvent) => {
+    e.preventDefault() // PREVENT FULL PAGE RELOAD!
+    if (!newTodo.trim() || isAddingTodo) return
+    
+    setIsAddingTodo(true)
     const todo = { id: `todo-${Date.now()}`, text: newTodo, done: false, guru_id: activeWorkspaceId }
-    await mutateData('todos', 'INSERT', todo, 'tahfidz_todos')
+    
+    // Optimistic Update
     setTodos([...todos, todo])
-    setNewTodo('')
+    setNewTodo('') // Clear input immediately
+    
+    const res = await mutateData('todos', 'INSERT', todo, 'tahfidz_todos')
+    if (res.success) {
+      toast.success('To Do ditambahkan!')
+    } else {
+      toast.error('Gagal menyimpan To Do')
+      // If error, rollback UI state
+      setTodos(todos) 
+    }
+    setIsAddingTodo(false)
   }
 
   const handleMasukKelas = (sched: Schedule | null) => {
@@ -790,7 +821,9 @@ export default function Dashboard() {
                   className="form-input" 
                   style={{ fontSize: 'var(--text-xs)', padding: '6px' }}
                 />
-                <button type="submit" className="btn-primary" style={{ padding: '6px 10px' }}><Plus size={14}/></button>
+                <button type="submit" className="btn-primary" style={{ padding: '6px 10px' }} disabled={isAddingTodo}>
+                  {isAddingTodo ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14}/>}
+                </button>
               </form>
             </div>
 

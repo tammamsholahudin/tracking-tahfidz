@@ -236,6 +236,53 @@
   flex-direction: column;
   min-height: 0;
   min-width: 0;
+  transition: margin-left var(--transition-base), width var(--transition-base);
+}
+
+.layoutCollapsed .main {
+  margin-left: 68px;
+  width: calc(100vw - 68px);
+}
+
+.sidebarCollapsed {
+  width: 68px !important;
+}
+
+.sidebarCollapsed .sidebarBrand,
+.sidebarCollapsed .clockDate,
+.sidebarCollapsed .navLabel,
+.sidebarCollapsed .navChevron,
+.sidebarCollapsed .profileInfo,
+.sidebarCollapsed .logoutBtn span {
+  display: none !important;
+}
+
+.sidebarCollapsed .clockTime {
+  font-size: var(--text-xs);
+  letter-spacing: normal;
+}
+
+.sidebarCollapsed .sidebarHeader {
+  justify-content: center;
+  padding: var(--space-6) 0;
+}
+
+.sidebarCollapsed .navItem {
+  justify-content: center;
+  padding: var(--space-3);
+}
+
+.sidebarCollapsed .navIcon {
+  margin: 0;
+}
+
+.sidebarCollapsed .profileRow {
+  justify-content: center;
+  padding: var(--space-2) 0;
+}
+
+.sidebarCollapsed .logoutBtn {
+  justify-content: center;
 }
 
 .content {
