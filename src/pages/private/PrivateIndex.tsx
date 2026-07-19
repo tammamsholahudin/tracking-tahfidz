@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { User, TrendingUp, ChevronRight, Target, Calendar, CheckCircle2, AlertCircle, CheckCircle } from 'lucide-react'
 import AddPrivateModal from '@/components/AddPrivateModal'
 import { useAuthStore } from '@/store/authStore'
+import { getSync, fetchBackground } from '@/lib/db'
 import FabMenu from '@/components/FabMenu'
 import styles from '../school/SchoolIndex.module.css'
 
@@ -23,10 +24,10 @@ export default function PrivateIndex() {
   const [students, setStudents] = useState<PrivateData[]>([])
 
   const fetchStudents = () => {
-    const localStudents = JSON.parse(localStorage.getItem('tahfidz_private_students') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-    const localTargets = JSON.parse(localStorage.getItem('tahfidz_targets') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-    const localMeetings = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-    const localSchedules = JSON.parse(localStorage.getItem('tahfidz_schedules') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localStudents = getSync('tahfidz_private_students').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localTargets = getSync('tahfidz_targets').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localMeetings = getSync('tahfidz_meetings').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localSchedules = getSync('tahfidz_schedules').filter((x:any) => x.guru_id === activeWorkspaceId)
 
     const mappedLocal = localStudents.map((s: any) => {
       const targetCount = localTargets.filter((t: any) => t.entity_id === s.id && t.entity_type === 'privat').length
@@ -44,10 +45,21 @@ export default function PrivateIndex() {
       }
     })
     setStudents(mappedLocal)
+
+    if (navigator.onLine) {
+      Promise.all([
+        fetchBackground('private_students', 'tahfidz_private_students', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('targets', 'tahfidz_targets', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('meetings', 'tahfidz_meetings', { filterColumn: 'guru_id', filterValue: activeWorkspaceId })
+      ]).catch(console.error)
+    }
   }
 
   useEffect(() => {
     fetchStudents()
+    const handleUpdate = () => fetchStudents()
+    window.addEventListener('local_cache_updated', handleUpdate)
+    return () => window.removeEventListener('local_cache_updated', handleUpdate)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspaceId])
 

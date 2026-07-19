@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Save, Calendar, AlertTriangle, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { getSync, mutateData } from '@/lib/db'
 import styles from './AddClassModal.module.css' // Reusing CSS
 import { checkCollision } from '@/lib/scheduleEngine'
 
@@ -36,11 +37,11 @@ export default function SetJadwalModal({ entityType, entityId, entityName, onClo
   const [loading, setLoading] = useState(false)
   const [conflictMsg, setConflictMsg] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent, force: boolean = false) => {
+  const handleSubmit = async (e: React.FormEvent, force: boolean = false) => {
     e.preventDefault()
     
     if (!force) {
-      const existing = JSON.parse(localStorage.getItem('tahfidz_schedules') || '[]') as Schedule[]
+      const existing = getSync('tahfidz_schedules') as Schedule[]
       const collision = checkCollision({ day, start_time: startTime, end_time: endTime }, existing)
       if (collision) {
         setConflictMsg(`Jadwal bertabrakan dengan ${collision.title} (${collision.start_time}-${collision.end_time})`)
@@ -64,8 +65,7 @@ export default function SetJadwalModal({ entityType, entityId, entityName, onClo
         color: colorMap[entityType]
       }
 
-      const existing = JSON.parse(localStorage.getItem('tahfidz_schedules') || '[]')
-      localStorage.setItem('tahfidz_schedules', JSON.stringify([...existing, newSchedule]))
+      await mutateData('schedules', 'INSERT', newSchedule, 'tahfidz_schedules')
 
       toast.success(syncGoogle ? 'Jadwal ditambahkan & disinkronkan ke Google Calendar!' : 'Jadwal berhasil ditambahkan!')
       onSuccess()

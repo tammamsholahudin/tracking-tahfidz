@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Plus, Clock, Trash2, Edit2 } from 'lucide-react'
-import { moveToTrash } from '@/lib/trash'
 import { checkCollision } from '@/lib/scheduleEngine'
+import { getSync, mutateData } from '@/lib/db'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
 
@@ -23,18 +23,16 @@ export default function ScheduleIndex({ entityId, entityType = 'sekolah', entity
   }, [entityId, entityType])
 
   const loadSchedules = () => {
-    const all = JSON.parse(localStorage.getItem('tahfidz_schedules') || '[]')
+    const all = getSync('tahfidz_schedules')
     setSchedules(all.filter((s: any) => 
       entityType === 'sekolah' ? s.class_id === entityId : s.entity_id === entityId
     ))
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validation for start and end time is handled by the HTML required attribute
-
-    const all = JSON.parse(localStorage.getItem('tahfidz_schedules') || '[]')
+    const all = getSync('tahfidz_schedules')
     
     // Check Collision
     const collision = checkCollision({ day, start_time: startTime, end_time: endTime }, all, editingId || undefined)
@@ -43,19 +41,20 @@ export default function ScheduleIndex({ entityId, entityType = 'sekolah', entity
       return
     }
 
-    let updated = []
-
     if (editingId) {
-      updated = all.map((s: any) => s.id === editingId ? {
-        ...s, 
-        day, 
-        start_time: startTime, 
-        end_time: endTime, 
-        title: entityType === 'sekolah' ? `Kelas ${entityName}` : entityName,
-        entity_type: entityType,
-        color: entityType === 'les' ? 'blue' : entityType === 'privat' ? 'purple' : 'green'
-      } : s)
-      toast.success('Jadwal berhasil diperbarui')
+      const existingSched = all.find((s: any) => s.id === editingId)
+      if (existingSched) {
+        await mutateData('schedules', 'UPDATE', {
+          ...existingSched,
+          day, 
+          start_time: startTime, 
+          end_time: endTime, 
+          title: entityType === 'sekolah' ? `Kelas ${entityName}` : entityName,
+          entity_type: entityType,
+          color: entityType === 'les' ? 'blue' : entityType === 'privat' ? 'purple' : 'green'
+        }, 'tahfidz_schedules')
+        toast.success('Jadwal berhasil diperbarui')
+      }
     } else {
       const newSched = {
         id: `sched-${Date.now()}`,
@@ -69,23 +68,17 @@ export default function ScheduleIndex({ entityId, entityType = 'sekolah', entity
         start_time: startTime, 
         end_time: endTime
       }
-      updated = [...all, newSched]
+      await mutateData('schedules', 'INSERT', newSched, 'tahfidz_schedules')
       toast.success('Jadwal baru berhasil ditambahkan')
     }
 
-    localStorage.setItem('tahfidz_schedules', JSON.stringify(updated))
-    loadSchedules()
     resetForm()
   }
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Hapus jadwal ini? Data akan dipindahkan ke Sampah.')) return
-    const sched = schedules.find(s => s.id === id)
-    if (sched) {
-      moveToTrash('tahfidz_schedules', id, `Jadwal: ${sched.day} (${sched.start_time || sched.startTime}-${sched.end_time || sched.endTime})`)
-      loadSchedules()
-      toast.success('Jadwal dipindahkan ke Sampah')
-    }
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus jadwal ini secara permanen?')) return
+    await mutateData('schedules', 'DELETE', { id }, 'tahfidz_schedules')
+    toast.success('Jadwal berhasil dihapus')
   }
 
   const handleEdit = (sched: any) => {

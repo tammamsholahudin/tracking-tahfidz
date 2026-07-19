@@ -25,6 +25,17 @@ export default function App() {
 
   useEffect(() => {
     initialize()
+    
+    // Auto-refresh data when user comes back to the tab
+    const handleFocus = () => {
+      import('@/lib/db').then(({ fetchAllBackground }) => fetchAllBackground())
+    }
+    window.addEventListener('focus', handleFocus)
+    
+    // Also fetch immediately on mount if initialized
+    import('@/lib/db').then(({ fetchAllBackground }) => fetchAllBackground())
+
+    return () => window.removeEventListener('focus', handleFocus)
   }, [initialize])
 
   return (

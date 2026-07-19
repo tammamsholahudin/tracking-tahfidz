@@ -3,6 +3,7 @@ import { BookOpen, CheckCircle2, UserCheck, CheckSquare, ListTodo, AlertTriangle
 import { SURAHS } from '@/data/surahs'
 import { getJuzFromSurah } from '@/lib/progressEngine'
 import { useAuthStore } from '@/store/authStore'
+import { getSync, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './MeetingWorkspace.module.css'
 
@@ -43,13 +44,13 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
   useEffect(() => {
     let activeStudents = []
     if (entityType === 'sekolah') {
-      const allLocalStudents = JSON.parse(localStorage.getItem('tahfidz_students') || '[]')
+      const allLocalStudents = getSync('tahfidz_students')
       activeStudents = allLocalStudents.filter((s: any) => s.class_id === entityId && s.name)
     } else if (entityType === 'les') {
-      const allLessonStudents = JSON.parse(localStorage.getItem('tahfidz_lesson_students') || '[]')
+      const allLessonStudents = getSync('tahfidz_lesson_students')
       activeStudents = allLessonStudents.filter((s: any) => s.group_id === entityId)
     } else if (entityType === 'privat') {
-      const allPrivates = JSON.parse(localStorage.getItem('tahfidz_private_students') || '[]')
+      const allPrivates = getSync('tahfidz_private_students')
       const p = allPrivates.find((x: any) => x.id === entityId)
       if (p) activeStudents = [p]
     }
@@ -170,7 +171,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     toast.success('Setoran tersimpan ke draft')
   }
 
-  const handleFinishMeeting = () => {
+  const handleFinishMeeting = async () => {
     if (!confirm('Akhiri pertemuan dan simpan semua data secara permanen?')) return
 
     const meetingId = `mtg-${Date.now()}`
@@ -187,11 +188,9 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
       notes: meetingNotes,
       total_students: students.length
     }
-    const allMeetings = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]')
-    localStorage.setItem('tahfidz_meetings', JSON.stringify([...allMeetings, newMeeting]))
+    await mutateData('meetings', 'INSERT', newMeeting, 'tahfidz_meetings')
 
     // Save Attendance
-    const allAtt = JSON.parse(localStorage.getItem('tahfidz_attendance_records') || '[]')
     const newAttRecords = students.map(s => ({
       id: `att-${Date.now()}-${s.id}`,
       meeting_id: meetingId,
@@ -204,10 +203,11 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
       status: attendance[s.id] || 'alpa',
       date: meetingDate
     }))
-    localStorage.setItem('tahfidz_attendance_records', JSON.stringify([...allAtt, ...newAttRecords]))
+    if (newAttRecords.length > 0) {
+      await mutateData('attendance_records', 'INSERT', newAttRecords, 'tahfidz_attendance_records')
+    }
 
     // Save Memorizations
-    const allMem = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]')
     const newMemRecords = Object.keys(memorizations).map(studentId => {
       const m = memorizations[studentId]
       const s = students.find(st => st.id === studentId)
@@ -226,7 +226,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     })
     
     if (newMemRecords.length > 0) {
-      localStorage.setItem('tahfidz_memorization_records', JSON.stringify([...allMem, ...newMemRecords]))
+      await mutateData('memorization_records', 'INSERT', newMemRecords, 'tahfidz_memorization_records')
     }
 
     localStorage.removeItem(draftKey) // Clean up draft

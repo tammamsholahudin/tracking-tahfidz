@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Save, UserPlus } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './AddClassModal.module.css'
 
@@ -24,7 +25,7 @@ export default function AddStudentModal({ entityId, entityType = 'sekolah', onCl
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
@@ -49,13 +50,8 @@ export default function AddStudentModal({ entityId, entityType = 'sekolah', onCl
         created_at: new Date().toISOString()
       }
 
-      if (entityType === 'sekolah') {
-        const existing = JSON.parse(localStorage.getItem('tahfidz_students') || '[]')
-        localStorage.setItem('tahfidz_students', JSON.stringify([...existing, newStudent]))
-      } else if (entityType === 'les') {
-        const existing = JSON.parse(localStorage.getItem('tahfidz_lesson_students') || '[]')
-        localStorage.setItem('tahfidz_lesson_students', JSON.stringify([...existing, newStudent]))
-      }
+      const tableKey = entityType === 'sekolah' ? 'tahfidz_students' : 'tahfidz_lesson_students'
+      await mutateData('students', 'INSERT', newStudent, tableKey)
 
       toast.success(`Siswa ${name} berhasil ditambahkan!`)
       onSuccess()

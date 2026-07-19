@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useAuthStore } from '@/store/authStore'
-import { supabase } from '@/lib/supabase'
+import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import AttendancePage from './Attendance'
 import MemorizationPage from './Memorization'
 import ClassProgressPage from './ClassProgress'
@@ -81,87 +81,46 @@ export default function ClassDashboard() {
   const fetchClassData = async () => {
     setLoading(true)
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-      if (supabaseUrl.includes('your-project.supabase.co')) {
-        throw new Error('Using dummy Supabase credentials')
-      }
-
-      const [clsRes, stuRes] = await Promise.all([
-        supabase.from('school_classes').select('*').eq('id', classId).single(),
-        supabase.from('students').select('*') // Usually there'd be a relation table, assume all for demo UI
-      ])
-
-      if (clsRes.error) throw clsRes.error
-
-      setCls({
-        ...clsRes.data,
-        semester: 'Ganjil',
-        academic_year: '2026/2027',
-        progress: 45 // Dummy progress for now
-      })
-      
-      const stData = stuRes.data || []
-      // Map students to UI schema
-      const mapped = stData.map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        last_surah: 'An-Naba',
-        last_verse: 15,
-        progress: Math.floor(Math.random() * 100),
-        attendance: 'hadir'
-      }))
-      setStudents(mapped)
-    } catch (err) {
-      console.error(err)
-      
-      // Fallback for LocalStorage Demo
       let localClass = null
 
       if (entityType === 'sekolah') {
-        const localClasses = JSON.parse(localStorage.getItem('tahfidz_classes') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
+        const localClasses = getSync('tahfidz_classes').filter((x:any) => x.guru_id === activeWorkspaceId)
         localClass = localClasses.find((c: any) => c.id === classId)
       } else if (entityType === 'les') {
-        const localGroups = JSON.parse(localStorage.getItem('tahfidz_lesson_groups') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
+        const localGroups = getSync('tahfidz_lesson_groups').filter((x:any) => x.guru_id === activeWorkspaceId)
         localClass = localGroups.find((g: any) => g.id === classId)
       } else if (entityType === 'privat') {
-        const localPrivates = JSON.parse(localStorage.getItem('tahfidz_private_students') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
+        const localPrivates = getSync('tahfidz_private_students').filter((x:any) => x.guru_id === activeWorkspaceId)
         localClass = localPrivates.find((p: any) => p.id === classId)
       }
       
       if (localClass) {
         setCls(localClass)
         
-        // Fetch local students based on entityType
         let mappedStudents = []
-        
         if (entityType === 'sekolah') {
-          const allLocalStudents = JSON.parse(localStorage.getItem('tahfidz_students') || '[]')
-          const validLocalStudents = allLocalStudents.filter((s: any) => s.name)
-          if (validLocalStudents.length !== allLocalStudents.length) {
-            localStorage.setItem('tahfidz_students', JSON.stringify(validLocalStudents))
-          }
-          mappedStudents = validLocalStudents.filter((s: any) => s.class_id === classId)
+          const allLocalStudents = getSync('tahfidz_students')
+          mappedStudents = allLocalStudents.filter((s: any) => s.class_id === classId)
         } else if (entityType === 'les') {
-          const allLessonStudents = JSON.parse(localStorage.getItem('tahfidz_lesson_students') || '[]')
+          const allLessonStudents = getSync('tahfidz_lesson_students')
           mappedStudents = allLessonStudents.filter((s: any) => s.group_id === classId)
         } else if (entityType === 'privat') {
-          mappedStudents = [localClass] // The student IS the entity
+          mappedStudents = [localClass] 
         }
         
         setStudents(mappedStudents)
 
-        const localTargets = JSON.parse(localStorage.getItem('tahfidz_targets') || '[]')
+        const localTargets = getSync('tahfidz_targets')
         setTargets(localTargets.filter((t: any) => 
           (entityType === 'sekolah' ? t.class_id === classId : t.entity_id === classId)
         ))
         
-        // Calculate dynamic stats
-        const allMeetings = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]')
+        const allMeetings = getSync('tahfidz_meetings')
         const classMeetings = allMeetings.filter((m: any) => 
           (entityType === 'sekolah' ? m.class_id === classId : (m.entity_id === classId && m.entity_type === entityType))
         )
         
-        const allAtt = JSON.parse(localStorage.getItem('tahfidz_attendance_records') || '[]')
+        const allAtt = getSync('tahfidz_attendance_records')
         let totalAtt = 0
         let totalHadir = 0
         classMeetings.forEach((m: any) => {
@@ -171,13 +130,25 @@ export default function ClassDashboard() {
         })
         const attendancePct = totalAtt > 0 ? Math.round((totalHadir / totalAtt) * 100) : 0
 
-        const allMem = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]')
+        const allMem = getSync('tahfidz_memorization_records')
         const todayStr = new Date().toISOString().split('T')[0]
         const classMem = allMem.filter((m: any) => (entityType === 'sekolah' ? m.class_id === classId : m.entity_id === classId))
         const todaySetoran = classMem.filter((m: any) => m.date?.startsWith(todayStr)).length
 
         setStats({ meetings: classMeetings.length, attendancePct, todaySetoran })
         setMemorizationRecords(classMem)
+      }
+
+      // 2. Fetch background (SWR)
+      if (navigator.onLine) {
+        Promise.all([
+          fetchBackground('school_classes', 'tahfidz_classes', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+          fetchBackground('students', 'tahfidz_students', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+          fetchBackground('targets', 'tahfidz_targets', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+          fetchBackground('meetings', 'tahfidz_meetings', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+          fetchBackground('attendance', 'tahfidz_attendance_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+          fetchBackground('memorization_records', 'tahfidz_memorization_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId })
+        ]).catch(console.error)
       }
     } finally {
       setLoading(false)
@@ -219,21 +190,20 @@ export default function ClassDashboard() {
       surah: surahName
     }
     
-    const allTargets = JSON.parse(localStorage.getItem('tahfidz_targets') || '[]')
-    localStorage.setItem('tahfidz_targets', JSON.stringify([...allTargets, newTarget]))
+    mutateData('targets', 'INSERT', newTarget, 'tahfidz_targets')
     
     setTargets([...targets, newTarget])
     toast.success('Target berhasil disimpan')
     form.reset()
   }
 
-  const handleDeleteTarget = (id: string) => {
+  const handleDeleteTarget = async (id: string) => {
     if (!confirm('Hapus target ini? Data akan dipindahkan ke Sampah.')) return
     const target = targets.find(t => t.id === id)
     if (target) {
-      moveToTrash('tahfidz_targets', id, `Target: ${target.name}`)
+      await mutateData('targets', 'DELETE', { id }, 'tahfidz_targets')
       setTargets(targets.filter(t => t.id !== id))
-      toast.success('Target dipindahkan ke Sampah')
+      toast.success('Target berhasil dihapus')
     }
   }
 
@@ -282,12 +252,8 @@ export default function ClassDashboard() {
     setSavingCls(true)
     await new Promise(r => setTimeout(r, 500))
 
-    // Update localStorage
-    const allClasses = JSON.parse(localStorage.getItem('tahfidz_classes') || '[]')
-    const updated = allClasses.map((c: any) =>
-      c.id === classId ? { ...c, ...clsForm, name: clsForm.name.trim() } : c
-    )
-    localStorage.setItem('tahfidz_classes', JSON.stringify(updated))
+    // Update Supabase
+    await mutateData('school_classes', 'UPDATE', { id: classId, ...clsForm, name: clsForm.name.trim() }, 'tahfidz_classes')
 
     // Update in-memory cls
     setCls((prev: any) => ({ ...prev, ...clsForm, name: clsForm.name.trim() }))
@@ -297,13 +263,10 @@ export default function ClassDashboard() {
 
   const handleDeactivateClass = () => {
     if (!window.confirm(`Yakin ingin menonaktifkan kelas "${cls.name}"? Kelas tidak akan tampil di daftar aktif.`)) return
-    const allClasses = JSON.parse(localStorage.getItem('tahfidz_classes') || '[]')
-    const updated = allClasses.map((c: any) =>
-      c.id === classId ? { ...c, is_active: false } : c
-    )
-    localStorage.setItem('tahfidz_classes', JSON.stringify(updated))
-    toast.success(`Kelas "${cls.name}" dinonaktifkan.`)
-    navigate('/sekolah')
+    mutateData('school_classes', 'UPDATE', { id: classId, is_active: false }, 'tahfidz_classes').then(() => {
+      toast.success(`Kelas "${cls.name}" dinonaktifkan.`)
+      navigate('/sekolah')
+    })
   }
 
   const weeklyData = [20, 35, 28, 42, 38, 0, 0]
@@ -567,10 +530,9 @@ export default function ClassDashboard() {
                               }}
                               onBlur={(e) => {
                                 // Save on blur
-                                const allLocalStudents = JSON.parse(localStorage.getItem('tahfidz_students') || '[]');
-                                const updatedAll = allLocalStudents.map((st: any) => st.id === s.id ? { ...st, note: e.target.value } : st);
-                                localStorage.setItem('tahfidz_students', JSON.stringify(updatedAll));
-                                toast.success('Catatan disimpan');
+                                mutateData('students', 'UPDATE', { id: s.id, note: e.target.value }, 'tahfidz_students').then(() => {
+                                  toast.success('Catatan disimpan');
+                                })
                               }}
                               style={{
                                 width: '100%',
@@ -585,7 +547,7 @@ export default function ClassDashboard() {
                           <td style={{ padding: '12px', textAlign: 'right' }}>
                             <button className={styles.btnOutline} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => {
                                if (confirm('Hapus siswa ini? Data akan dipindahkan ke Sampah.')) {
-                                 moveToTrash('tahfidz_students', s.id, s.name)
+                                 moveToTrash('students', s.id, s.name, 'Guru', activeWorkspaceId || '')
                                  setStudents(students.filter(st => st.id !== s.id))
                                  toast.success('Siswa dipindahkan ke Sampah')
                                }
@@ -1002,11 +964,10 @@ export default function ClassDashboard() {
               created_at: new Date().toISOString()
             }))
             
-            const existing = JSON.parse(localStorage.getItem('tahfidz_students') || '[]')
-            localStorage.setItem('tahfidz_students', JSON.stringify([...existing, ...newStudents]))
-            
-            toast.success(`Berhasil mengimport ${importData.length} siswa ke kelas ${cls.name}!`)
-            fetchClassData()
+            mutateData('students', 'INSERT', newStudents, 'tahfidz_students').then(() => {
+              toast.success(`Berhasil mengimport ${importData.length} siswa ke kelas ${cls.name}!`)
+              fetchClassData()
+            })
           }}
         />
       )}

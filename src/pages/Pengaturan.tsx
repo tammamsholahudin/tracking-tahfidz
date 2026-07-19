@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import {
-  User, Lock, LogOut, Download, Upload, Info,
-  ChevronRight, Eye, EyeOff, ShieldCheck, BookOpen,
+  User, Lock, LogOut, Info,
+  ChevronRight, Eye, EyeOff, BookOpen,
   CheckCircle2, Building2, Save
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
@@ -14,8 +14,6 @@ export default function Pengaturan() {
   const { profile, logout } = useAuthStore()
   const { institutionName, institutionSubtitle, updateSettings } = useSettingsStore()
   const navigate = useNavigate()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const isAdmin = profile?.role === 'admin'
 
   // Institution name state
   const [instName, setInstName] = useState(institutionName)
@@ -65,75 +63,6 @@ export default function Pengaturan() {
     setOldPass(''); setNewPass(''); setConfirmPass('')
   }
 
-  const handleBackup = () => {
-    try {
-      const backupKeys = [
-        'tahfidz_classes',
-        'tahfidz_lesson_groups',
-        'tahfidz_private_students',
-        'tahfidz_students',
-        'tahfidz_schedules',
-        'tahfidz_todos',
-        'tahfidz_teachers',
-        'tahfidz_meetings',
-        'tahfidz_attendance',
-        'tahfidz_memorization',
-      ]
-      const backup: Record<string, unknown> = {
-        _meta: {
-          app: 'Tracking Tahfidz MAM!',
-          version: '1.0.0',
-          backup_date: new Date().toISOString(),
-          user: profile?.name,
-        }
-      }
-      backupKeys.forEach(key => {
-        const val = localStorage.getItem(key)
-        if (val) backup[key] = JSON.parse(val)
-      })
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `backup_tahfidz_${new Date().toISOString().slice(0, 10)}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success('Backup berhasil diunduh!')
-    } catch {
-      toast.error('Gagal membuat backup.')
-    }
-  }
-
-  const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!file.name.endsWith('.json')) {
-      toast.error('Format file harus .json')
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target?.result as string) as Record<string, unknown>
-        if (!data._meta) {
-          toast.error('File backup tidak valid.')
-          return
-        }
-        const meta = data._meta as Record<string, string>
-        if (!window.confirm(`Restore data dari backup tanggal ${meta.backup_date?.slice(0, 10)}?\nSeluruh data saat ini akan ditimpa.`)) return
-        const { _meta: _, ...rest } = data
-        Object.entries(rest).forEach(([key, val]) => {
-          localStorage.setItem(key, JSON.stringify(val))
-        })
-        toast.success('Data berhasil di-restore! Halaman akan dimuat ulang.')
-        setTimeout(() => window.location.reload(), 1500)
-      } catch {
-        toast.error('File backup rusak atau tidak dapat dibaca.')
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = ''
-  }
 
   return (
     <div className={`${styles.page} page-enter`}>
@@ -255,77 +184,6 @@ export default function Pengaturan() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* ── DATA ── */}
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>Data</div>
-
-          <div className={styles.card}>
-            <button
-              id="btn-backup-database"
-              className={styles.menuRow}
-              onClick={handleBackup}
-            >
-              <div className={styles.menuIcon} style={{ background: '#d1fae5', color: '#059669' }}>
-                <Download size={18} />
-              </div>
-              <div className={styles.menuText}>
-                <span className={styles.menuTitle}>Backup Database</span>
-                <span className={styles.menuDesc}>Unduh seluruh data sebagai file JSON</span>
-              </div>
-              <ChevronRight size={16} className={styles.menuChevron} />
-            </button>
-
-            <div className={styles.divider} />
-            <button
-              id="btn-sync-cloud"
-              className={styles.menuRow}
-              onClick={async () => {
-                const { pushToCloud } = await import('@/lib/syncEngine')
-                await pushToCloud()
-              }}
-            >
-              <div className={styles.menuIcon} style={{ background: '#e0f2fe', color: '#0284c7' }}>
-                <Upload size={18} />
-              </div>
-              <div className={styles.menuText}>
-                <span className={styles.menuTitle}>Sinkronisasi ke Cloud</span>
-                <span className={styles.menuDesc}>Simpan data Anda secara online ke database</span>
-              </div>
-              <ChevronRight size={16} className={styles.menuChevron} />
-            </button>
-
-            {/* Restore — Admin only */}
-            {isAdmin && (
-              <>
-                <div className={styles.divider} />
-                <button
-                  id="btn-restore-database"
-                  className={styles.menuRow}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <div className={styles.menuIcon} style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                    <Upload size={18} />
-                  </div>
-                  <div className={styles.menuText}>
-                    <span className={styles.menuTitle}>Restore Database</span>
-                    <span className={styles.menuDesc} style={{ color: '#7c3aed', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <ShieldCheck size={12} /> Admin Only — Timpa data dengan file backup
-                    </span>
-                  </div>
-                  <ChevronRight size={16} className={styles.menuChevron} />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".json"
-                  style={{ display: 'none' }}
-                  onChange={handleRestoreFile}
-                />
-              </>
-            )}
           </div>
         </div>
 

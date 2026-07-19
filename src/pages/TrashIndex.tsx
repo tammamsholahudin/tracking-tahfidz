@@ -6,9 +6,9 @@ import toast from 'react-hot-toast'
 import styles from './TrashIndex.module.css'
 
 export default function TrashIndex() {
-  const { activeWorkspaceId } = useAuthStore()
+  const { activeWorkspaceId, profile } = useAuthStore()
   const [items, setItems] = useState<TrashItem[]>([])
-  const [role, setRole] = useState(localStorage.getItem('tahfidz_role') || 'Admin')
+  const role = profile?.role === 'admin' ? 'Admin' : 'Guru'
 
   const loadItems = () => {
     // Auto-delete items older than 30 days
@@ -20,34 +20,34 @@ export default function TrashIndex() {
     const validItems = all.filter(item => {
       if (new Date(item.deleted_at) < thirtyDaysAgo) {
         cleaned = true
+        // Hard delete from supabase
+        hardDeleteTrash(item.id)
         return false
       }
-      return item.data?.guru_id === activeWorkspaceId
+      return item.guru_id === activeWorkspaceId || role === 'Admin'
     })
 
     if (cleaned) {
-      localStorage.setItem('tahfidz_trash', JSON.stringify(validItems))
       toast('Beberapa data di Sampah berumur >30 hari dan dihapus otomatis', { icon: '🧹' })
     }
     
-    setItems(validItems.reverse()) // newest first
+    setItems(validItems) // getTrashItems already sorted by newest
   }
 
   useEffect(() => {
     loadItems()
+    window.addEventListener('local_cache_updated', loadItems)
+    return () => window.removeEventListener('local_cache_updated', loadItems)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspaceId])
+  }, [activeWorkspaceId, role])
 
   const toggleRole = () => {
-    const newRole = role === 'Admin' ? 'Guru' : 'Admin'
-    localStorage.setItem('tahfidz_role', newRole)
-    setRole(newRole)
-    toast.success(`Role disimulasikan sebagai: ${newRole}`)
+    toast('Simulasi role telah dimatikan. Menggunakan role asli dari akun Anda.', { icon: 'ℹ️' })
   }
 
   const handleRestore = (id: string) => {
     if (confirm('Pulihkan data ini beserta seluruh relasinya?')) {
-      restoreFromTrash(id, role)
+      restoreFromTrash(id)
       toast.success('Data berhasil dipulihkan')
       loadItems()
     }
@@ -61,7 +61,7 @@ export default function TrashIndex() {
     
     if (confirm('PERINGATAN! Data akan dihapus permanen. Lanjutkan?')) {
       if (confirm('Konfirmasi kedua: Apakah Anda benar-benar yakin? (Tindakan ini tidak bisa dibatalkan)')) {
-        hardDeleteTrash(id, role)
+        hardDeleteTrash(id)
         toast.success('Data dihapus permanen')
         loadItems()
       }

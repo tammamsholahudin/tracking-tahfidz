@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 import { CheckCircle2, XCircle, Trophy, BookOpen, Clock } from 'lucide-react'
+import { getSync } from '@/lib/db'
 import { calculateStudentProgress, calculateClassProgress, getStatusLabel, getStatusColor, type TargetHafalan } from '@/lib/progressEngine'
 import styles from './ClassProgress.module.css'
 
@@ -10,27 +11,27 @@ export default function ClassProgressPage({ entityId, entityType = 'sekolah' }: 
   const [records, setRecords] = useState<any[]>([])
   
   useEffect(() => {
-    // Load data from localStorage
+    // Load data from getSync
     let activeStudents = []
     if (entityType === 'sekolah') {
-      const allStudents = JSON.parse(localStorage.getItem('tahfidz_students') || '[]')
+      const allStudents = getSync('tahfidz_students')
       activeStudents = allStudents.filter((s: any) => s.class_id === entityId && s.name)
     } else if (entityType === 'les') {
-      const allLessonStudents = JSON.parse(localStorage.getItem('tahfidz_lesson_students') || '[]')
+      const allLessonStudents = getSync('tahfidz_lesson_students')
       activeStudents = allLessonStudents.filter((s: any) => s.group_id === entityId)
     } else if (entityType === 'privat') {
-      const allPrivates = JSON.parse(localStorage.getItem('tahfidz_private_students') || '[]')
+      const allPrivates = getSync('tahfidz_private_students')
       const p = allPrivates.find((x: any) => x.id === entityId)
       if (p) activeStudents = [p]
     }
     setStudents(activeStudents)
     
-    const allTargets = JSON.parse(localStorage.getItem('tahfidz_targets') || '[]')
+    const allTargets = getSync('tahfidz_targets')
     setTargets(allTargets.filter((t: any) => 
       entityType === 'sekolah' ? t.class_id === entityId : t.entity_id === entityId
     ))
     
-    const allMem = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]')
+    const allMem = getSync('tahfidz_memorization_records')
     setRecords(allMem.filter((m: any) => 
       entityType === 'sekolah' ? m.class_id === entityId : m.entity_id === entityId
     ))

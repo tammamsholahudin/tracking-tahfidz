@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, Save, BookOpen } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { mutateData } from '@/lib/db'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
 import styles from './AddClassModal.module.css'
@@ -30,41 +30,22 @@ export default function AddClassModal({ onClose, onSuccess }: AddClassModalProps
 
     setLoading(true)
     try {
-      const { error } = await supabase.from('school_classes').insert({
+      const newClass = {
+        id: `cls_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         name: name,
-        teacher_id: 'default-teacher-id',
+        guru_id: activeWorkspaceId,
         homeroom_teacher: homeroomTeacher,
         grade_level: gradeLevel,
         semester: semester,
         notes: notes,
-        academic_year: academicYear,
         total_students: 0,
+        academic_year: academicYear,
+        progress: 0,
         is_active: true
-      })
-
-      if (error) {
-        const newClass = {
-          id: 'local-' + Date.now().toString(),
-          name: name,
-          guru_id: activeWorkspaceId,
-          homeroom_teacher: homeroomTeacher,
-          grade_level: gradeLevel,
-          semester: semester,
-          notes: notes,
-          total_students: 0,
-          academic_year: academicYear,
-          progress: 0,
-          is_active: true
-        }
-        const existing = JSON.parse(localStorage.getItem('tahfidz_classes') || '[]')
-        localStorage.setItem('tahfidz_classes', JSON.stringify([...existing, newClass]))
-        
-        toast.success('Disimulasikan (Lokal): Kelas berhasil ditambahkan!')
-        onSuccess()
-        return
       }
 
-      toast.success('Kelas berhasil ditambahkan ke Database!')
+      await mutateData('school_classes', 'INSERT', newClass, 'tahfidz_classes')
+      toast.success('Kelas berhasil ditambahkan!')
       onSuccess()
     } catch (err) {
       console.error(err)

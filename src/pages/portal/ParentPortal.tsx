@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { ArrowLeft, Download, BookOpen, Search, Users, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Download, BookOpen, Search, Users, CheckCircle, Loader2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import styles from './ParentPortal.module.css'
 
 // ── Types ──────────────────────────────────────────────
@@ -234,38 +235,58 @@ export default function ParentPortal() {
   const [selected, setSelected] = useState<Student | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [loadingData, setLoadingData] = useState(true)
+  const [allAtt, setAllAtt] = useState<AttRecord[]>([])
+  const [allMem, setAllMem] = useState<MemRecord[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Load data from localStorage on mount
+  // Load data from Supabase on mount
   useEffect(() => {
-    const allClasses: ClassData[] = JSON.parse(localStorage.getItem('tahfidz_classes') || '[]')
-    const foundCls = allClasses.find(c => c.id === classId) || null
-    setCls(foundCls)
-    
-    if (foundCls && foundCls.guru_id) {
-      const teachers = JSON.parse(localStorage.getItem('tahfidz_teachers') || '[]')
-      const teacher = teachers.find((t: any) => t.id === foundCls.guru_id)
-      if (teacher) {
-        // Attach the real teacher name so we can use it below
-        foundCls.teacher_name_actual = teacher.name
+    async function fetchPortalData() {
+      setLoadingData(true)
+      try {
+        const { data: clsData } = await supabase.from('school_classes').select('*').eq('id', classId).single()
+        
+        if (clsData) {
+          const foundCls = clsData as ClassData
+          
+          if (foundCls.guru_id) {
+            const { data: teacher } = await supabase.from('teachers').select('*').eq('id', foundCls.guru_id).single()
+            if (teacher) {
+              foundCls.teacher_name_actual = teacher.name
+            }
+          }
+          setCls(foundCls)
+
+          const { data: studentsData } = await supabase.from('students').select('*').eq('class_id', classId)
+          if (studentsData) setStudents((studentsData as Student[]).filter(s => s.name))
+
+          const activeSemester = foundCls.semester || 'Ganjil'
+          const { data: targetsData } = await supabase.from('targets').select('*').eq('class_id', classId).eq('semester', activeSemester)
+          if (targetsData) setTargets(targetsData as Target[])
+
+          const { data: attData } = await supabase.from('attendance_records').select('*').eq('class_id', classId)
+          if (attData) setAllAtt(attData as AttRecord[])
+
+          const { data: memData } = await supabase.from('memorization_records').select('*').eq('class_id', classId)
+          if (memData) setAllMem(memData as MemRecord[])
+        }
+      } catch (err) {
+        console.error('Error fetching portal data:', err)
+      } finally {
+        setLoadingData(false)
       }
     }
-
-    const allStudents: Student[] = JSON.parse(localStorage.getItem('tahfidz_students') || '[]')
-    setStudents(allStudents.filter(s => s.class_id === classId && s.name))
-
-    const allTargets: Target[] = JSON.parse(localStorage.getItem('tahfidz_targets') || '[]')
-    const activeSemester = foundCls?.semester || 'Ganjil'
-    setTargets(allTargets.filter(t => t.class_id === classId && t.semester === activeSemester))
+    
+    if (classId) {
+      fetchPortalData()
+    }
   }, [classId])
 
-  // Load all att records accessible by student
   function getStudentAtt(studentId: string) {
-    const allAtt: AttRecord[] = JSON.parse(localStorage.getItem('tahfidz_attendance_records') || '[]')
     return allAtt.filter(a => a.student_id === studentId)
   }
   function getStudentMem(studentId: string): MemRecord[] {
-    const allMem: MemRecord[] = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]')
     return allMem.filter(m => m.student_id === studentId).sort((a, b) => {
       const da = new Date(a.date || a.created_at || 0).getTime()
       const db = new Date(b.date || b.created_at || 0).getTime()
@@ -289,6 +310,14 @@ export default function ParentPortal() {
       setMatches(found)
       setView('multiple')
     }
+  }
+
+  if (loadingData) {
+    return (
+      <div className={styles.portalRoot} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Loader2 size={48} className="animate-spin" color="var(--clr-primary-600)" />
+      </div>
+    )
   }
 
   // ── Render: Class not found ──

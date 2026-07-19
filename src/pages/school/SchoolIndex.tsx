@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { School, Users, TrendingUp, ChevronRight, BookOpen, Loader2, Target, Calendar, CheckCircle2, AlertCircle, Edit3 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import AddClassModal from '@/components/AddClassModal'
 import EditClassModal from '@/components/EditClassModal'
 import { useAuthStore } from '@/store/authStore'
+import { getSync, fetchBackground } from '@/lib/db'
 import FabMenu from '@/components/FabMenu'
 import styles from './SchoolIndex.module.css'
 
@@ -36,40 +36,12 @@ export default function SchoolIndex() {
   const fetchClasses = async () => {
     setLoading(true)
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-      if (supabaseUrl.includes('your-project.supabase.co')) {
-        throw new Error('Using dummy Supabase credentials')
-      }
-
-      const { data, error } = await supabase
-        .from('school_classes')
-        .select('*')
-        .eq('is_active', true)
-        
-      if (error) throw error
-      
-      const mapped = (data || []).map(d => ({
-        id: d.id,
-        name: d.name,
-        total_students: d.total_students || 0,
-        academic_year: d.academic_year || '2026/2027', 
-        semester: d.semester || 'Ganjil',
-        progress: d.progress || 0,
-        homeroom_teacher: d.homeroom_teacher || '',
-        target_count: d.target_count || 0,
-        meeting_count: d.meeting_count || 0,
-        has_schedule: d.has_schedule || false
-      }))
-      setClasses(mapped)
-    } catch (err) {
-      console.error('Error fetching classes:', err)
-      const localClasses = JSON.parse(localStorage.getItem('tahfidz_classes') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-      const localStudents = JSON.parse(localStorage.getItem('tahfidz_students') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-      
-      const localTargets = JSON.parse(localStorage.getItem('tahfidz_targets') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-      const localMeetings = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-      const localSchedules = JSON.parse(localStorage.getItem('tahfidz_schedules') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-
+      // 1. Ambil dari cache lokal (cepat)
+      const localClasses = getSync('tahfidz_classes').filter((x:any) => x.guru_id === activeWorkspaceId && x.is_active !== false)
+      const localStudents = getSync('tahfidz_students').filter((x:any) => x.guru_id === activeWorkspaceId)
+      const localTargets = getSync('tahfidz_targets').filter((x:any) => x.guru_id === activeWorkspaceId)
+      const localMeetings = getSync('tahfidz_meetings').filter((x:any) => x.guru_id === activeWorkspaceId)
+      const localSchedules = getSync('tahfidz_schedules').filter((x:any) => x.guru_id === activeWorkspaceId)
 
       const mappedLocal = localClasses.map((c: any) => {
         const studentCount = localStudents.filter((s: any) => s.class_id === c.id && s.name).length
@@ -88,6 +60,16 @@ export default function SchoolIndex() {
         }
       })
       setClasses(mappedLocal)
+
+      // 2. Fetch background (SWR)
+      if (navigator.onLine) {
+        Promise.all([
+          fetchBackground('school_classes', 'tahfidz_classes', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+          fetchBackground('students', 'tahfidz_students', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+          fetchBackground('targets', 'tahfidz_targets', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+          fetchBackground('meetings', 'tahfidz_meetings', { filterColumn: 'guru_id', filterValue: activeWorkspaceId })
+        ]).catch(console.error)
+      }
     } finally {
       setLoading(false)
     }
@@ -95,6 +77,11 @@ export default function SchoolIndex() {
 
   useEffect(() => {
     fetchClasses()
+    
+    // Auto-update jika ada sinkronisasi background yang mengubah cache
+    const handleUpdate = () => fetchClasses()
+    window.addEventListener('local_cache_updated', handleUpdate)
+    return () => window.removeEventListener('local_cache_updated', handleUpdate)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspaceId])
 

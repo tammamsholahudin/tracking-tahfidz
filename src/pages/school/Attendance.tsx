@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { ClipboardList, Users, CheckCircle2, XCircle, Clock, Heart, Calendar, Trash2, Edit, CheckSquare, Printer } from 'lucide-react'
-import { moveToTrash } from '@/lib/trash'
 import { exportAttendanceExcel } from '@/lib/excel'
 import { exportAttendancePDF } from '@/lib/pdf'
+import { getSync, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './Attendance.module.css'
 
@@ -21,12 +21,12 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
   const [selectedMeetingIds, setSelectedMeetingIds] = useState<string[]>([])
 
   const loadData = () => {
-    const allMeetings = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]')
+    const allMeetings = getSync('tahfidz_meetings')
     const classMeetings = allMeetings.filter((m: any) => 
       entityType === 'sekolah' ? m.class_id === entityId : m.entity_id === entityId
     ).reverse()
     
-    const allAtt = JSON.parse(localStorage.getItem('tahfidz_attendance_records') || '[]')
+    const allAtt = getSync('tahfidz_attendance_records')
     const classAtt = allAtt.filter((a: any) => 
       entityType === 'sekolah' ? a.class_id === entityId : a.entity_id === entityId
     )
@@ -48,6 +48,9 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
 
   useEffect(() => {
     loadData()
+    const handleUpdate = () => loadData()
+    window.addEventListener('local_cache_updated', handleUpdate)
+    return () => window.removeEventListener('local_cache_updated', handleUpdate)
   }, [entityId, entityType])
 
   const formatDate = (dateStr: string) => {
@@ -66,17 +69,18 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
     else setSelectedMeetingIds(meetings.map(m => m.id))
   }
 
-  const handleMassDeleteMeetings = () => {
-    if (!confirm(`Hapus ${selectedMeetingIds.length} pertemuan ke Sampah? (Semua data absensi dan setoran terkait akan ikut terhapus)`)) return
+  const handleMassDeleteMeetings = async () => {
+    if (!confirm(`Hapus ${selectedMeetingIds.length} pertemuan secara permanen? (Semua data absensi dan setoran terkait akan ikut terhapus)`)) return
     
-    selectedMeetingIds.forEach(id => {
+    for (const id of selectedMeetingIds) {
       const m = meetings.find(x => x.id === id)
-      if (m) moveToTrash('tahfidz_meetings', id, `Pertemuan: ${formatDate(m.date)}`)
-    })
+      if (m) {
+        await mutateData('meetings', 'DELETE', { id }, 'tahfidz_meetings')
+      }
+    }
     
-    toast.success(`${selectedMeetingIds.length} pertemuan dipindahkan ke Sampah`)
+    toast.success(`${selectedMeetingIds.length} pertemuan berhasil dihapus`)
     setSelectedMeetingIds([])
-    loadData()
   }
 
   const handleExportPDF = () => {
@@ -89,9 +93,9 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
     const exportMeetings = meetings.filter(m => selectedMeetingIds.includes(m.id)).reverse()
     let allStudents = []
     if (entityType === 'sekolah') {
-      allStudents = JSON.parse(localStorage.getItem('tahfidz_students') || '[]').filter((s:any) => s.class_id === entityId && s.name)
+      allStudents = getSync('tahfidz_students').filter((s:any) => s.class_id === entityId && s.name)
     } else if (entityType === 'les') {
-      allStudents = JSON.parse(localStorage.getItem('tahfidz_lesson_students') || '[]').filter((s:any) => s.group_id === entityId)
+      allStudents = getSync('tahfidz_lesson_students').filter((s:any) => s.group_id === entityId)
     } else if (entityType === 'privat') {
       allStudents = [entityData]
     }
@@ -133,9 +137,9 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
     const exportMeetings = meetings.filter(m => selectedMeetingIds.includes(m.id)).reverse() 
     let allStudents = []
     if (entityType === 'sekolah') {
-      allStudents = JSON.parse(localStorage.getItem('tahfidz_students') || '[]').filter((s:any) => s.class_id === entityId && s.name)
+      allStudents = getSync('tahfidz_students').filter((s:any) => s.class_id === entityId && s.name)
     } else if (entityType === 'les') {
-      allStudents = JSON.parse(localStorage.getItem('tahfidz_lesson_students') || '[]').filter((s:any) => s.group_id === entityId)
+      allStudents = getSync('tahfidz_lesson_students').filter((s:any) => s.group_id === entityId)
     } else if (entityType === 'privat') {
       allStudents = [entityData]
     }

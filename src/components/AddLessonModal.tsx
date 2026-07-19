@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, Save, BookOpen } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { mutateData } from '@/lib/db'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
 import styles from './AddClassModal.module.css' // Reusing CSS
@@ -24,31 +24,18 @@ export default function AddLessonModal({ onClose, onSuccess }: AddLessonModalPro
 
     setLoading(true)
     try {
-      const { error } = await supabase.from('lesson_groups').insert({
+      const newGroup = {
+        id: `local-les-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: name,
-        teacher_id: 'default-teacher-id',
-        is_active: true
-      })
-
-      if (error) {
-        // Fallback to localStorage if Supabase fails
-        const newGroup = {
-          id: 'local-les-' + Date.now().toString(),
-          name: name,
-          guru_id: activeWorkspaceId,
-          total_students: 0,
-          is_active: true,
-          schedule: 'Ahad Sore'
-        }
-        const existing = JSON.parse(localStorage.getItem('tahfidz_lesson_groups') || '[]')
-        localStorage.setItem('tahfidz_lesson_groups', JSON.stringify([...existing, newGroup]))
-        
-        toast.success('Disimulasikan (Lokal): Grup Les berhasil ditambahkan!')
-        onSuccess()
-        return
+        guru_id: activeWorkspaceId,
+        total_students: 0,
+        is_active: true,
+        schedule: 'Ahad Sore'
       }
-
-      toast.success('Grup Les berhasil ditambahkan ke Database!')
+      
+      await mutateData('lesson_groups', 'INSERT', newGroup, 'tahfidz_lesson_groups')
+      
+      toast.success('Grup Les berhasil ditambahkan!')
       onSuccess()
     } catch (err) {
       console.error(err)
@@ -77,8 +64,8 @@ export default function AddLessonModal({ onClose, onSuccess }: AddLessonModalPro
               autoFocus
             />
           </div>
-          <button type="submit" className={styles.btnPrimary} disabled={loading}>
-            {loading ? 'Menyimpan...' : <><Save size={18} /> Simpan ke Database</>}
+          <button type="submit" className={styles.btnPrimary} disabled={loading} style={{ width: '100%', justifyContent: 'center' }}>
+            {loading ? 'Menyimpan...' : <><Save size={18} /> Simpan Grup Les</>}
           </button>
         </form>
       </div>

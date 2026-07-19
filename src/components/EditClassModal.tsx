@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { X, Save, Edit3, Trash2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
-import { moveToTrash } from '@/lib/trash'
+import { mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './AddClassModal.module.css' // Reuse the same CSS
 
@@ -29,31 +28,18 @@ export default function EditClassModal({ classData, onClose, onSuccess }: EditCl
 
     setLoading(true)
     try {
-      const { error } = await supabase.from('school_classes').update({
+      const payload = {
+        id: classData.id,
         name: name,
         homeroom_teacher: homeroomTeacher,
         grade_level: gradeLevel,
         semester: semester,
         notes: notes,
         academic_year: academicYear,
-      }).eq('id', classData.id)
-
-      if (error) {
-        // Fallback to localStorage if Supabase fails or not configured
-        const existing = JSON.parse(localStorage.getItem('tahfidz_classes') || '[]')
-        const updated = existing.map((c: any) => 
-          c.id === classData.id 
-            ? { ...c, name, homeroom_teacher: homeroomTeacher, grade_level: gradeLevel, semester, notes, academic_year: academicYear } 
-            : c
-        )
-        localStorage.setItem('tahfidz_classes', JSON.stringify(updated))
-        
-        toast.success('Disimulasikan (Lokal): Kelas berhasil diperbarui!')
-        onSuccess()
-        return
       }
 
-      toast.success('Kelas berhasil diperbarui ke Database!')
+      await mutateData('school_classes', 'UPDATE', payload, 'tahfidz_classes')
+      toast.success('Kelas berhasil diperbarui!')
       onSuccess()
     } catch (err) {
       console.error(err)
@@ -63,10 +49,12 @@ export default function EditClassModal({ classData, onClose, onSuccess }: EditCl
     }
   }
 
-  const handleDelete = () => {
-    if (confirm('Hapus kelas ini? Data akan dipindahkan ke Sampah dan dapat dipulihkan dalam 30 hari.')) {
-      moveToTrash('tahfidz_classes', classData.id, classData.name)
-      toast.success('Kelas dipindahkan ke Sampah')
+  const handleDelete = async () => {
+    if (confirm('Hapus kelas ini? Data akan dihapus secara permanen.')) {
+      setLoading(true)
+      await mutateData('school_classes', 'DELETE', { id: classData.id }, 'tahfidz_classes')
+      toast.success('Kelas berhasil dihapus')
+      setLoading(false)
       onSuccess()
     }
   }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, Save, User } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { mutateData } from '@/lib/db'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
 import styles from './AddClassModal.module.css' // Reusing CSS
@@ -25,33 +25,19 @@ export default function AddPrivateModal({ onClose, onSuccess }: AddPrivateModalP
 
     setLoading(true)
     try {
-      const { error } = await supabase.from('private_students').insert({
-        student_id: 'default-student',
-        teacher_id: 'default-teacher',
+      const newSantri = {
+        id: `local-prv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: name,
+        guru_id: activeWorkspaceId,
+        target: target,
+        last_surah: 'Belum mulai',
+        last_verse: 0,
+        progress: 0,
         is_active: true
-      })
-
-      if (error) {
-        // Fallback to localStorage
-        const newSantri = {
-          id: 'local-prv-' + Date.now().toString(),
-          name: name,
-          guru_id: activeWorkspaceId,
-          target: target,
-          last_surah: 'Belum mulai',
-          last_verse: 0,
-          progress: 0,
-          is_active: true
-        }
-        const existing = JSON.parse(localStorage.getItem('tahfidz_private_students') || '[]')
-        localStorage.setItem('tahfidz_private_students', JSON.stringify([...existing, newSantri]))
-        
-        toast.success('Disimulasikan (Lokal): Santri Privat ditambahkan!')
-        onSuccess()
-        return
       }
-
-      toast.success('Santri Privat berhasil ditambahkan ke Database!')
+      
+      await mutateData('private_students', 'INSERT', newSantri, 'tahfidz_private_students')
+      toast.success('Santri Privat berhasil ditambahkan!')
       onSuccess()
     } catch (err) {
       console.error(err)
@@ -89,8 +75,8 @@ export default function AddPrivateModal({ onClose, onSuccess }: AddPrivateModalP
               <option value="30 Juz">30 Juz</option>
             </select>
           </div>
-          <button type="submit" className={styles.btnPrimary} disabled={loading}>
-            {loading ? 'Menyimpan...' : <><Save size={18} /> Simpan ke Database</>}
+          <button type="submit" className={styles.btnPrimary} disabled={loading} style={{ width: '100%', justifyContent: 'center' }}>
+            {loading ? 'Menyimpan...' : <><Save size={18} /> Simpan Santri Privat</>}
           </button>
         </form>
       </div>

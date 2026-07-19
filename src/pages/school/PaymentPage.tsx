@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CreditCard, Plus, Trash2, User, Calendar } from 'lucide-react'
-import { moveToTrash } from '@/lib/trash'
+import { getSync, mutateData } from '@/lib/db'
 import { useAuthStore } from '@/store/authStore'
 import toast from 'react-hot-toast'
 import styles from './Memorization.module.css'
@@ -26,17 +26,17 @@ export default function PaymentPage({ entityId, entityType = 'les' }: PaymentPag
   const [status, setStatus] = useState('Lunas')
 
   const loadData = () => {
-    const allPayments = JSON.parse(localStorage.getItem('tahfidz_payments') || '[]')
+    const allPayments = getSync('tahfidz_payments')
     const entityPayments = allPayments.filter((p: any) => p.entity_id === entityId).reverse()
     setPayments(entityPayments)
 
     // Load students
     let activeStudents = []
     if (entityType === 'les') {
-      const allLessonStudents = JSON.parse(localStorage.getItem('tahfidz_lesson_students') || '[]')
+      const allLessonStudents = getSync('tahfidz_lesson_students')
       activeStudents = allLessonStudents.filter((s: any) => s.group_id === entityId)
     } else if (entityType === 'privat') {
-      const allPrivates = JSON.parse(localStorage.getItem('tahfidz_private_students') || '[]')
+      const allPrivates = getSync('tahfidz_private_students')
       const p = allPrivates.find((x: any) => x.id === entityId)
       if (p) activeStudents = [p]
     }
@@ -48,9 +48,12 @@ export default function PaymentPage({ entityId, entityType = 'les' }: PaymentPag
 
   useEffect(() => {
     loadData()
+    const handleUpdate = () => loadData()
+    window.addEventListener('local_cache_updated', handleUpdate)
+    return () => window.removeEventListener('local_cache_updated', handleUpdate)
   }, [entityId, entityType])
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!selectedStudent || !amount || !paymentDate || !paymentFor) {
@@ -74,21 +77,17 @@ export default function PaymentPage({ entityId, entityType = 'les' }: PaymentPag
       status
     }
 
-    const allPayments = JSON.parse(localStorage.getItem('tahfidz_payments') || '[]')
-    localStorage.setItem('tahfidz_payments', JSON.stringify([...allPayments, newPayment]))
+    await mutateData('payments', 'INSERT', newPayment, 'tahfidz_payments')
     
     toast.success('Pembayaran berhasil dicatat')
     setShowForm(false)
     resetForm()
-    loadData()
   }
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Hapus data pembayaran ini? Data akan dipindahkan ke Sampah.')) return
-    const rec = payments.find(p => p.id === id)
-    if (rec) moveToTrash('tahfidz_payments', id, `Pembayaran: ${rec.student_name} (${rec.payment_for})`)
-    loadData()
-    toast.success('Data dipindahkan ke Sampah')
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus data pembayaran secara permanen?')) return
+    await mutateData('payments', 'DELETE', { id }, 'tahfidz_payments')
+    toast.success('Data berhasil dihapus')
   }
 
   const resetForm = () => {

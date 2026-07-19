@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { formatTanggal } from '@/data/surahs'
+import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import SetJadwalModal from '@/components/SetJadwalModal'
 import { exportToICS } from '@/lib/scheduleEngine'
 import styles from './Dashboard.module.css'
@@ -76,11 +77,11 @@ export default function Dashboard() {
   }
 
   const fetchDashboardData = () => {
-    const localClasses = JSON.parse(localStorage.getItem('tahfidz_classes') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-    const localLessons = JSON.parse(localStorage.getItem('tahfidz_lesson_groups') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-    const localPrivates = JSON.parse(localStorage.getItem('tahfidz_private_students') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-    const localStudents = JSON.parse(localStorage.getItem('tahfidz_students') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
-    const localMems = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localClasses = getSync('tahfidz_classes').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localLessons = getSync('tahfidz_lesson_groups').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localPrivates = getSync('tahfidz_private_students').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localStudents = getSync('tahfidz_students').filter((x:any) => x.guru_id === activeWorkspaceId)
+    const localMems = getSync('tahfidz_memorization_records').filter((x:any) => x.guru_id === activeWorkspaceId)
 
     
     const today = new Date().toLocaleDateString('id-ID')
@@ -98,7 +99,7 @@ export default function Dashboard() {
     })
 
     // 2. Schedules with auto-migration
-    let allSchedules = JSON.parse(localStorage.getItem('tahfidz_schedules') || '[]')
+    let allSchedules = getSync('tahfidz_schedules')
     let localSchedules = allSchedules.filter((x:any) => x.guru_id === activeWorkspaceId)
     let needsMigration = false
     localSchedules = localSchedules.map((s: any) => {
@@ -149,7 +150,7 @@ export default function Dashboard() {
     setSchedules(localSchedules as Schedule[])
 
     // 3. Todos
-    const allTodos = JSON.parse(localStorage.getItem('tahfidz_todos') || '[]')
+    const allTodos = getSync('tahfidz_todos')
     const localTodos = allTodos.filter((x:any) => x.guru_id === activeWorkspaceId)
     if (localTodos.length > 0) setTodos(localTodos)
 
@@ -161,7 +162,7 @@ export default function Dashboard() {
       totalTarget += studentsInClass * meetingsPerWeek
     })
 
-    const localLessonStudents = JSON.parse(localStorage.getItem('tahfidz_lesson_students') || '[]')
+    const localLessonStudents = getSync('tahfidz_lesson_students')
     localLessons.forEach((g: any) => {
       const studentsInGroup = localLessonStudents.filter((s: any) => s.group_id === g.id).length
       const meetingsPerWeek = localSchedules.filter((sch: any) => sch.entity_type === 'les' && sch.entity_id === g.id).length
@@ -185,7 +186,7 @@ export default function Dashboard() {
     setWeeklyStats({ target: totalTarget, setoran: weeklySetoran, pct })
 
     // 5. Recent activities
-    const localAtts = JSON.parse(localStorage.getItem('tahfidz_attendance_records') || '[]')
+    const localAtts = getSync('tahfidz_attendance_records')
     const activities: { id: string; time: string; desc: string; rawDate: Date }[] = []
     
     localMems.forEach((m: any) => {
@@ -248,7 +249,26 @@ export default function Dashboard() {
       })
 
     setAlerts(activeAlerts)
+    
+    // Background SWR Fetches
+    if (navigator.onLine) {
+      Promise.all([
+        fetchBackground('school_classes', 'tahfidz_classes', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('lesson_groups', 'tahfidz_lesson_groups', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('private_students', 'tahfidz_private_students', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('students', 'tahfidz_students', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('memorization_records', 'tahfidz_memorization_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('attendance', 'tahfidz_attendance_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+      ]).catch(console.error)
+    }
   }
+
+  useEffect(() => {
+    fetchDashboardData()
+    const handleUpdate = () => fetchDashboardData()
+    window.addEventListener('local_cache_updated', handleUpdate)
+    return () => window.removeEventListener('local_cache_updated', handleUpdate)
+  }, [activeWorkspaceId])
 
   useEffect(() => {
     const hour = now.getHours()
@@ -257,11 +277,6 @@ export default function Dashboard() {
     else if (hour < 18) setGreeting('Selamat Sore')
     else setGreeting('Selamat Malam')
   }, [now])
-
-  useEffect(() => {
-    fetchDashboardData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspaceId])
 
   // Derived Schedule Logic
   const todayStr = DAYS[now.getDay()]
@@ -315,21 +330,19 @@ export default function Dashboard() {
 
   // Todo Handlers
   const toggleTodo = (id: string) => {
-    const updated = todos.map(t => t.id === id ? { ...t, done: !t.done } : t)
-    setTodos(updated)
-    const allTodos = JSON.parse(localStorage.getItem('tahfidz_todos') || '[]')
-    const newAllTodos = allTodos.map((t:any) => t.id === id ? { ...t, done: !t.done } : t)
-    localStorage.setItem('tahfidz_todos', JSON.stringify(newAllTodos))
+    const newTodos = todos.map(t => {
+      if (t.id === id) return { ...t, done: !t.done }
+      return t
+    })
+    mutateData('todos', 'UPDATE', { id, done: true }, 'tahfidz_todos')
+    setTodos(newTodos)
   }
-  const addTodo = (e: React.FormEvent) => {
-    e.preventDefault()
+
+  const addTodo = async () => {
     if (!newTodo.trim()) return
-    const todo = { id: Date.now().toString(), text: newTodo.trim(), done: false, guru_id: activeWorkspaceId }
-    const updated = [...todos, todo]
-    setTodos(updated)
-      
-    const allTodos = JSON.parse(localStorage.getItem('tahfidz_todos') || '[]')
-    localStorage.setItem('tahfidz_todos', JSON.stringify([...allTodos, todo]))
+    const todo = { id: `todo-${Date.now()}`, text: newTodo, done: false, guru_id: activeWorkspaceId }
+    await mutateData('todos', 'INSERT', todo, 'tahfidz_todos')
+    setTodos([...todos, todo])
     setNewTodo('')
   }
 

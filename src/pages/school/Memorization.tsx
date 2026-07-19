@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BookOpen, Users, CheckSquare, Edit, Trash2, Download, Printer } from 'lucide-react'
-import { moveToTrash } from '@/lib/trash'
+import { getSync, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './Memorization.module.css'
 
@@ -21,7 +21,7 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
   const [massNote, setMassNote] = useState('')
 
   const loadData = () => {
-    const allMem = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]')
+    const allMem = getSync('tahfidz_memorization_records')
     const classMem = allMem.filter((m: any) => 
       entityType === 'sekolah' ? m.class_id === entityId : m.entity_id === entityId
     ).reverse() // newest first
@@ -30,6 +30,9 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
 
   useEffect(() => {
     loadData()
+    const handleUpdate = () => loadData()
+    window.addEventListener('local_cache_updated', handleUpdate)
+    return () => window.removeEventListener('local_cache_updated', handleUpdate)
   }, [entityId, entityType])
 
   const formatDate = (dateStr: string) => {
@@ -59,38 +62,33 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
     else setSelectedIds(memorizations.map(r => r.id))
   }
 
-  const handleMassDelete = () => {
-    if (!confirm(`Hapus ${selectedIds.length} data setoran ke Sampah?`)) return
+  const handleMassDelete = async () => {
+    if (!confirm(`Hapus ${selectedIds.length} data setoran secara permanen?`)) return
     
-    selectedIds.forEach(id => {
-      const rec = memorizations.find(m => m.id === id)
-      if (rec) moveToTrash('tahfidz_memorization_records', id, `Setoran: ${rec.student_name} (${rec.surah_name})`)
-    })
+    for (const id of selectedIds) {
+      await mutateData('memorization_records', 'DELETE', { id }, 'tahfidz_memorization_records')
+    }
     
-    toast.success(`${selectedIds.length} data dipindahkan ke Sampah`)
+    toast.success(`${selectedIds.length} data berhasil dihapus`)
     setSelectedIds([])
-    loadData()
   }
 
-  const handleMassEditSubmit = () => {
-    const allMem = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]')
-    const updated = allMem.map((m: any) => {
+  const handleMassEditSubmit = async () => {
+    const allMem = getSync('tahfidz_memorization_records')
+    for (const m of allMem) {
       if (selectedIds.includes(m.id)) {
-        return {
-          ...m,
+        await mutateData('memorization_records', 'UPDATE', {
+          id: m.id,
           status: massStatus,
           score: parseInt(massScore),
           note: massNote !== '' ? massNote : m.note
-        }
+        }, 'tahfidz_memorization_records')
       }
-      return m
-    })
+    }
     
-    localStorage.setItem('tahfidz_memorization_records', JSON.stringify(updated))
     toast.success(`Berhasil mengubah ${selectedIds.length} data setoran`)
     setShowMassEdit(false)
     setSelectedIds([])
-    loadData()
   }
 
   return (

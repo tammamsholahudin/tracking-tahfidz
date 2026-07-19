@@ -28,13 +28,25 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 export default function AppLayout() {
-  const { profile, logout, activeWorkspaceId, setActiveWorkspaceId } = useAuthStore()
+  const { profile, activeWorkspaceId, setActiveWorkspaceId, logout } = useAuthStore()
   const navigate = useNavigate()
   const now = useRealTimeClock()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const isAdmin = profile?.role === 'admin'
   const visibleItems = NAV_ITEMS.filter(item => !item.adminOnly || isAdmin)
+  
+  const [offlineCount, setOfflineCount] = useState(0)
+
+  useEffect(() => {
+    const checkQueue = () => {
+      const queue = JSON.parse(localStorage.getItem('offline_queue') || '[]')
+      setOfflineCount(queue.length)
+    }
+    checkQueue()
+    window.addEventListener('offline_queue_updated', checkQueue)
+    return () => window.removeEventListener('offline_queue_updated', checkQueue)
+  }, [])
   
   const isAdminViewingOther = isAdmin && activeWorkspaceId && activeWorkspaceId !== profile?.id
   const [otherTeacherName, setOtherTeacherName] = useState('Guru')
@@ -252,24 +264,30 @@ export default function AppLayout() {
         <main className={styles.content}>
           {isAdminViewingOther && (
             <div className={styles.adminBanner}>
-              <div className={styles.adminBannerInner}>
-                <AlertTriangle size={18} />
-                <div className={styles.adminBannerText}>
-                  Anda sedang melihat Workspace Guru <strong>{otherTeacherName}</strong> (Mode Administrator)
+              <div className={styles.workspaceBanner} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertTriangle size={16} />
+                  <span>Mode Admin: Melihat data <strong>{otherTeacherName}</strong></span>
                 </div>
                 <button 
-                  className={styles.adminBannerBtn}
                   onClick={() => setActiveWorkspaceId(profile?.id || null)}
+                  style={{ background: 'white', color: '#b45309', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
-                  Kembali ke Workspace Saya
+                  Kembali
                 </button>
               </div>
             </div>
           )}
-          <Outlet />
-        </main>
 
-        {/* ── Bottom Navigation (Mobile) ── */}
+          {offlineCount > 0 && (
+            <div style={{ background: '#fef3c7', color: '#b45309', padding: 'var(--space-2) var(--space-4)', fontSize: 'var(--text-xs)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontWeight: 500 }}>
+              <AlertTriangle size={14} />
+              Menunggu sinkronisasi ({offlineCount} perubahan)
+            </div>
+          )}
+
+          <Outlet />
+        </main>        {/* ── Bottom Navigation (Mobile) ── */}
         <nav className={styles.bottomNav}>
           {visibleItems.slice(0, 5).map(item => (
             <NavLink

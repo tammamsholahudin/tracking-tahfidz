@@ -5,6 +5,7 @@ import {
   KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './MasterIndex.module.css'
 
@@ -21,20 +22,7 @@ interface Teacher {
   created_at: string
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'tahfidz_teachers'
-
-function loadTeachers(): Teacher[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as Teacher[]
-  } catch { /* ignore */ }
-  return []
-}
-
-function saveTeachers(list: Teacher[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
-}
 
 const PASSWORDS_KEY = 'tahfidz_teacher_passwords'
 
@@ -81,10 +69,10 @@ export default function MasterIndex() {
   const [showResetPass, setShowResetPass] = useState(false)
 
   // ── Load ──
-  useEffect(() => {
-    const list = loadTeachers()
+  const fetchTeachers = () => {
+    const list = getSync(STORAGE_KEY)
     // Inject current admin (demo) jika belum ada
-    if (profile && !list.find(t => t.email === profile.email)) {
+    if (profile && !list.find((t:any) => t.email === profile.email)) {
       const adminEntry: Teacher = {
         id: profile.id,
         name: profile.name,
@@ -95,11 +83,22 @@ export default function MasterIndex() {
         created_at: new Date().toISOString(),
       }
       const updated = [adminEntry, ...list]
-      saveTeachers(updated)
+      mutateData('teachers', 'INSERT', adminEntry, STORAGE_KEY)
       setTeachers(updated)
     } else {
       setTeachers(list)
     }
+
+    if (navigator.onLine) {
+      fetchBackground('teachers', STORAGE_KEY).catch(console.error)
+    }
+  }
+
+  useEffect(() => {
+    fetchTeachers()
+    const handleUpdate = () => fetchTeachers()
+    window.addEventListener('local_cache_updated', handleUpdate)
+    return () => window.removeEventListener('local_cache_updated', handleUpdate)
   }, [profile])
 
   // ── Derived ──
@@ -139,15 +138,10 @@ export default function MasterIndex() {
       return
     }
     setSaving(true)
-    await new Promise(r => setTimeout(r, 500))
 
-    let updated: Teacher[]
     if (editTarget) {
-      updated = teachers.map(t =>
-        t.id === editTarget.id
-          ? { ...t, name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), role: form.role }
-          : t
-      )
+      const payload = { id: editTarget.id, name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), role: form.role }
+      await mutateData('teachers', 'UPDATE', payload, STORAGE_KEY)
       
       // Migrate password if email changed
       if (editTarget.email.toLowerCase() !== form.email.trim().toLowerCase()) {
@@ -176,26 +170,20 @@ export default function MasterIndex() {
         is_active: true,
         created_at: new Date().toISOString(),
       }
-      updated = [...teachers, newTeacher]
+      await mutateData('teachers', 'INSERT', newTeacher, STORAGE_KEY)
       // Save password for demo-mode login
       if (form.password) savePassword(form.email, form.password)
       toast.success(`Guru "${newTeacher.name}" berhasil ditambahkan!`)
     }
 
-    saveTeachers(updated)
-    setTeachers(updated)
     setSaving(false)
     setShowModal(false)
   }
 
-  const handleToggleActive = (t: Teacher) => {
+  const handleToggleActive = async (t: Teacher) => {
     const action = t.is_active ? 'nonaktifkan' : 'aktifkan kembali'
     if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} akun ${t.name}?`)) return
-    const updated = teachers.map(x =>
-      x.id === t.id ? { ...x, is_active: !x.is_active } : x
-    )
-    saveTeachers(updated)
-    setTeachers(updated)
+    await mutateData('teachers', 'UPDATE', { id: t.id, is_active: !t.is_active }, STORAGE_KEY)
     toast.success(`Akun ${t.name} berhasil di-${action}.`)
   }
 

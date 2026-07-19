@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Save, CalendarPlus } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { getSync, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './AddClassModal.module.css'
 
@@ -38,12 +39,12 @@ export default function AddMeetingModal({ entityId, entityType = 'sekolah', enti
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     
     try {
-      const existing = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]')
+      const existing = getSync('tahfidz_meetings')
       // Count existing meetings for this entity to auto-increment meeting number
       const entityMeetings = existing.filter((m: any) => 
         entityType === 'sekolah' ? m.class_id === entityId : m.entity_id === entityId
@@ -63,7 +64,7 @@ export default function AddMeetingModal({ entityId, entityType = 'sekolah', enti
         created_at: new Date().toISOString()
       }
 
-      localStorage.setItem('tahfidz_meetings', JSON.stringify([...existing, newMeeting]))
+      await mutateData('meetings', 'INSERT', newMeeting, 'tahfidz_meetings')
 
       toast.success(`Pertemuan Ke-${meetingNumber} berhasil dibuat!`)
       onSuccess()
