@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Shield, Plus, Edit2, UserX, UserCheck,
-  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen
+  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { createClient } from '@supabase/supabase-js'
@@ -222,6 +222,16 @@ export default function MasterIndex() {
     toast.success(`Akun ${t.name} berhasil di-${action}.`)
   }
 
+  const handleDelete = async (t: Teacher) => {
+    if (!window.confirm(`HAPUS PERMANEN akun ${t.name}? Awas, fitur ini akan menghapus data guru sepenuhnya.`)) return
+    const res = await mutateData('teachers', 'DELETE', { id: t.id }, STORAGE_KEY)
+    if (res && res.success === false) {
+      toast.error('Gagal menghapus: ' + (res.error?.message || 'Pastikan RLS admin mengizinkan.'))
+      return
+    }
+    toast.success(`Akun ${t.name} berhasil dihapus permanen.`)
+  }
+
   const openResetPass = (t: Teacher) => {
     setResetTarget(t)
     setResetPass('')
@@ -396,17 +406,27 @@ export default function MasterIndex() {
                             {t.is_active ? <UserX size={15} /> : <UserCheck size={15} />}
                           </button>
                           {t.id !== profile?.id && (
-                            <button
-                              className={styles.actionBtn}
-                              title="Buka Workspace"
-                              onClick={() => {
-                                setActiveWorkspaceId(t.id)
-                                navigate('/dashboard')
-                              }}
-                              style={{ color: 'var(--brand-600)', background: 'var(--brand-100)' }}
-                            >
-                              <Eye size={15} />
-                            </button>
+                            <>
+                              <button
+                                className={styles.actionBtn}
+                                title="Hapus Permanen"
+                                onClick={() => handleDelete(t)}
+                                style={{ color: 'var(--clr-danger)' }}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                              <button
+                                className={styles.actionBtn}
+                                title="Buka Workspace"
+                                onClick={() => {
+                                  setActiveWorkspaceId(t.id)
+                                  navigate('/dashboard')
+                                }}
+                                style={{ color: 'var(--brand-600)', background: 'var(--brand-100)' }}
+                              >
+                                <Eye size={15} />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
