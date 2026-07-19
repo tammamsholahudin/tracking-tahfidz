@@ -8,7 +8,8 @@
 
 /* ── Base ── */
 .portalRoot {
-  min-height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
   background: #f4fafd;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   color: #161d1f;
