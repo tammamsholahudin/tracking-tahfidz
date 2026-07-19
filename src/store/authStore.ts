@@ -25,7 +25,7 @@ interface AuthState {
   initialize: () => Promise<void>
   login: (email: string, password: string) => Promise<{ error: string | null }>
   logout: () => Promise<void>
-  updateProfile: (updates: Partial<TeacherProfile>) => void
+  updateProfile: (updates: Partial<TeacherProfile>) => Promise<void>
   setActiveWorkspaceId: (id: string | null) => void
 }
 
@@ -115,9 +115,18 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, profile: null, activeWorkspaceId: null })
       },
 
-      updateProfile: (updates) => {
+      updateProfile: async (updates) => {
         const current = get().profile
-        if (current) set({ profile: { ...current, ...updates } })
+        if (current) {
+          // Update Supabase
+          const { error } = await supabase.from('teachers').update(updates).eq('id', current.id)
+          if (!error) {
+            // Update local state if successful
+            set({ profile: { ...current, ...updates } })
+          } else {
+            console.error('Failed to update profile in Supabase:', error)
+          }
+        }
       },
 
       setActiveWorkspaceId: (id) => {
