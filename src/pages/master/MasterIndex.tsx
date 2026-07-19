@@ -5,6 +5,7 @@ import {
   KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { createClient } from '@supabase/supabase-js'
 import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './MasterIndex.module.css'
@@ -14,6 +15,7 @@ type GRole = 'admin' | 'guru'
 
 interface Teacher {
   id: string
+  user_id?: string | null
   name: string
   email: string
   phone: string
@@ -166,8 +168,27 @@ export default function MasterIndex() {
         setSaving(false)
         return
       }
+      // Create auth user first
+      const tempAuthClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      )
+      
+      const { data: authData, error: authError } = await tempAuthClient.auth.signUp({
+        email: form.email.trim(),
+        password: form.password,
+      })
+
+      if (authError) {
+        toast.error('Gagal membuat akun login: ' + authError.message)
+        setSaving(false)
+        return
+      }
+
       const newTeacher: Teacher = {
         id: generateId(),
+        user_id: authData.user?.id,
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
@@ -177,13 +198,13 @@ export default function MasterIndex() {
       }
       const res = await mutateData('teachers', 'INSERT', newTeacher, STORAGE_KEY)
       if (res && res.success === false) {
-        toast.error('Gagal menambahkan guru: ' + (res.error?.message || 'Pastikan RLS Supabase sudah diatur.'))
+        toast.error('Gagal menyimpan profil: ' + (res.error?.message || 'Pastikan RLS Supabase sudah diatur.'))
         setSaving(false)
         return
       }
-      // Save password for demo-mode login
+      // Save password for demo-mode login (optional fallback)
       if (form.password) savePassword(form.email, form.password)
-      toast.success(`Guru "${newTeacher.name}" berhasil ditambahkan!`)
+      toast.success(`Guru "${newTeacher.name}" berhasil ditambahkan dan bisa login!`)
     }
 
     setSaving(false)
