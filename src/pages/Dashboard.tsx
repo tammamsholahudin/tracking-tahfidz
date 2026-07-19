@@ -285,7 +285,10 @@ export default function Dashboard() {
         fetchBackground('private_students', 'tahfidz_private_students', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
         fetchBackground('students', 'tahfidz_students', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
         fetchBackground('memorization_records', 'tahfidz_memorization_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
-        fetchBackground('attendance', 'tahfidz_attendance_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('attendance_records', 'tahfidz_attendance_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('schedules', 'tahfidz_schedules', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('meetings', 'tahfidz_meetings', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('todos', 'tahfidz_todos', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
       ]).catch(console.error)
     }
   }
