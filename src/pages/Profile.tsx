@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Camera, Mail, Phone, Lock, LogOut, Save, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import styles from './Profile.module.css'
@@ -10,6 +11,7 @@ export default function Profile() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(profile?.name ?? '')
+  const [email, setEmail] = useState(profile?.email ?? '')
   const [phone, setPhone] = useState(profile?.phone ?? '')
   const [saving, setSaving] = useState(false)
 
@@ -32,8 +34,17 @@ export default function Profile() {
 
   const handleSave = async () => {
     setSaving(true)
-    await new Promise(r => setTimeout(r, 600))
-    updateProfile({ name: name.trim(), phone: phone.trim() || null })
+    
+    if (email.trim() !== profile?.email) {
+      const { error: authError } = await supabase.auth.updateUser({ email: email.trim() })
+      if (authError) {
+        toast.error('Gagal mengubah email login: ' + authError.message)
+        setSaving(false)
+        return
+      }
+    }
+
+    updateProfile({ name: name.trim(), email: email.trim(), phone: phone.trim() || null })
     setSaving(false)
     toast.success('Profil berhasil disimpan!')
   }
@@ -94,9 +105,8 @@ export default function Profile() {
             <input
               type="email"
               className="form-input"
-              value={profile?.email ?? ''}
-              disabled
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+              value={email}
+              onChange={e => setEmail(e.target.value)}
             />
           </div>
 
