@@ -94,6 +94,8 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const teacher = teachers.find((t: any) => t.email?.toLowerCase() === email.toLowerCase() && t.is_active)
+          
+          if (teacher) {
             const storedPass = passwords[email.toLowerCase()]
 
             if (storedPass && storedPass === password) {
