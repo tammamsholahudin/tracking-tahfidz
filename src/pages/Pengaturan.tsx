@@ -263,7 +263,6 @@ export default function Pengaturan() {
           <div className={styles.sectionLabel}>Data</div>
 
           <div className={styles.card}>
-            {/* Backup */}
             <button
               id="btn-backup-database"
               className={styles.menuRow}
@@ -275,6 +274,25 @@ export default function Pengaturan() {
               <div className={styles.menuText}>
                 <span className={styles.menuTitle}>Backup Database</span>
                 <span className={styles.menuDesc}>Unduh seluruh data sebagai file JSON</span>
+              </div>
+              <ChevronRight size={16} className={styles.menuChevron} />
+            </button>
+
+            <div className={styles.divider} />
+            <button
+              id="btn-sync-cloud"
+              className={styles.menuRow}
+              onClick={async () => {
+                const { pushToCloud } = await import('@/lib/syncEngine')
+                await pushToCloud()
+              }}
+            >
+              <div className={styles.menuIcon} style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                <Upload size={18} />
+              </div>
+              <div className={styles.menuText}>
+                <span className={styles.menuTitle}>Sinkronisasi ke Cloud</span>
+                <span className={styles.menuDesc}>Simpan data Anda secara online ke database</span>
               </div>
               <ChevronRight size={16} className={styles.menuChevron} />
             </button>

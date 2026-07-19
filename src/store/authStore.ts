@@ -113,6 +113,12 @@ export const useAuthStore = create<AuthState>()(
                 user: { id: teacher.id },
                 activeWorkspaceId: teacher.id
               })
+              
+              // Tarik data terbaru dari Cloud secara asinkron (tidak memblokir UI)
+              import('@/lib/syncEngine').then(({ pullFromCloud }) => {
+                pullFromCloud().then(() => console.log('Auto-pulled from cloud on login'))
+              })
+
               return { error: null }
             }
           }
