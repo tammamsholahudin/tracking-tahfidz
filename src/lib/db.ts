@@ -209,7 +209,8 @@ export const fetchAllBackground = async () => {
     { table: 'payments', cacheKey: 'tahfidz_payments' },
     { table: 'lesson_groups', cacheKey: 'tahfidz_lesson_groups' },
     { table: 'private_students', cacheKey: 'tahfidz_private_students' },
-    { table: 'audit_logs', cacheKey: 'tahfidz_audit_logs' }
+    { table: 'audit_logs', cacheKey: 'tahfidz_audit_logs' },
+    { table: 'todos', cacheKey: 'tahfidz_todos' }
   ]
   for (const { table, cacheKey } of tables) {
     await fetchBackground(table, cacheKey)

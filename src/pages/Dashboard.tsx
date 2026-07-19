@@ -152,8 +152,34 @@ export default function Dashboard() {
 
     // 3. Todos
     const allTodos = getSync('tahfidz_todos')
-    const localTodos = allTodos.filter((x:any) => x.guru_id === activeWorkspaceId)
-    if (localTodos.length > 0) setTodos(localTodos)
+    let localTodos = allTodos.filter((x:any) => x.guru_id === activeWorkspaceId)
+    
+    // Cleanup old completed todos (24 hours)
+    try {
+      const timestamps = JSON.parse(localStorage.getItem('tahfidz_todo_timestamps') || '{}')
+      const nowMs = Date.now()
+      let modified = false
+      localTodos = localTodos.filter((t: any) => {
+        if (t.done && timestamps[t.id]) {
+          const ageMs = nowMs - timestamps[t.id]
+          if (ageMs > 24 * 60 * 60 * 1000) {
+            // Delete from Supabase in background
+            mutateData('todos', 'DELETE', { id: t.id }, 'tahfidz_todos').catch(console.error)
+            delete timestamps[t.id]
+            modified = true
+            return false // filter out
+          }
+        }
+        return true
+      })
+      if (modified) {
+        localStorage.setItem('tahfidz_todo_timestamps', JSON.stringify(timestamps))
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
+    setTodos(localTodos)
 
     // 4. Weekly stats (Target = sum over all scheduled entities of: students * meetings)
     let totalTarget = 0
@@ -338,6 +364,19 @@ export default function Dashboard() {
 
     const newDoneState = !todoToToggle.done
     
+    // Save timestamp for auto-deletion after 24h
+    try {
+      const timestamps = JSON.parse(localStorage.getItem('tahfidz_todo_timestamps') || '{}')
+      if (newDoneState) {
+        timestamps[id] = Date.now()
+      } else {
+        delete timestamps[id]
+      }
+      localStorage.setItem('tahfidz_todo_timestamps', JSON.stringify(timestamps))
+    } catch (e) {
+      console.error(e)
+    }
+
     // Optimistic UI Update
     const newTodos = todos.map(t => {
       if (t.id === id) return { ...t, done: newDoneState }
