@@ -57,9 +57,43 @@ export const useAuthStore = create<AuthState>()(
           const teachers = JSON.parse(localStorage.getItem('tahfidz_teachers') || '[]')
           const passwords: Record<string, string> = JSON.parse(localStorage.getItem('tahfidz_teacher_passwords') || '{}')
           
+          // First time setup: If database is completely empty, register the first user as Admin
+          if (teachers.length === 0) {
+            const newAdminId = 'admin-' + Date.now()
+            const newAdmin = {
+              id: newAdminId,
+              name: 'Admin Utama',
+              email: email.toLowerCase(),
+              phone: '',
+              role: 'admin',
+              is_active: true,
+              created_at: new Date().toISOString()
+            }
+            
+            teachers.push(newAdmin)
+            passwords[email.toLowerCase()] = password
+            
+            localStorage.setItem('tahfidz_teachers', JSON.stringify(teachers))
+            localStorage.setItem('tahfidz_teacher_passwords', JSON.stringify(passwords))
+            
+            set({
+              profile: {
+                id: newAdminId,
+                user_id: newAdminId,
+                name: newAdmin.name,
+                email: newAdmin.email,
+                phone: null,
+                photo_url: null,
+                role: 'admin',
+                is_active: true,
+              },
+              user: { id: newAdminId },
+              activeWorkspaceId: newAdminId
+            })
+            return { error: null }
+          }
+
           const teacher = teachers.find((t: any) => t.email?.toLowerCase() === email.toLowerCase() && t.is_active)
-          
-          if (teacher) {
             const storedPass = passwords[email.toLowerCase()]
 
             if (storedPass && storedPass === password) {
