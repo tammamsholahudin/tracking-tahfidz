@@ -207,49 +207,58 @@ ON public.teachers FOR DELETE
 USING ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- CLASSES
-CREATE POLICY "Guru can CRUD own classes" 
+CREATE POLICY "Guru or Admin can CRUD classes" 
 ON public.school_classes FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- STUDENTS
-CREATE POLICY "Guru can CRUD own students" 
+CREATE POLICY "Guru or Admin can CRUD students" 
 ON public.students FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- MEETINGS
-CREATE POLICY "Guru can CRUD own meetings" 
+CREATE POLICY "Guru or Admin can CRUD meetings" 
 ON public.meetings FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- ATTENDANCE
-CREATE POLICY "Guru can CRUD own attendance" 
+CREATE POLICY "Guru or Admin can CRUD attendance" 
 ON public.attendance_records FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- MEMORIZATION
-CREATE POLICY "Guru can CRUD own memorization" 
+CREATE POLICY "Guru or Admin can CRUD memorization" 
 ON public.memorization_records FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- TARGETS
-CREATE POLICY "Guru can CRUD own targets" 
+CREATE POLICY "Guru or Admin can CRUD targets" 
 ON public.targets FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- SCHEDULES
-CREATE POLICY "Guru can CRUD own schedules" 
+CREATE POLICY "Guru or Admin can CRUD schedules" 
 ON public.schedules FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- PAYMENTS
-CREATE POLICY "Guru can CRUD own payments" 
+CREATE POLICY "Guru or Admin can CRUD payments" 
 ON public.payments FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+
+-- LESSON GROUPS & PRIVATE STUDENTS
+CREATE POLICY "Guru or Admin can CRUD lesson groups" 
+ON public.lesson_groups FOR ALL 
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+
+CREATE POLICY "Guru or Admin can CRUD private students" 
+ON public.private_students FOR ALL 
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- AUDIT LOGS
-CREATE POLICY "Guru can CRUD own audit logs" 
+CREATE POLICY "Guru or Admin can CRUD audit logs" 
 ON public.audit_logs FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text);
+USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
 
 -- =========================================================
 -- 4. POLICIES UNTUK PARENT PORTAL (ANONYMOUS READ)
