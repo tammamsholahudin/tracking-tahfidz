@@ -63,15 +63,9 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Universal Mutator: Handles optimistic UI updates, Supabase mutation, and offline queueing.
+ * Helper to update local cache
  */
-export const mutateData = async (
-  table: string, 
-  type: 'INSERT' | 'UPDATE' | 'DELETE', 
-  payload: any, 
-  cacheKey: string
-) => {
-  // 1. Optimistic Update Local Cache
+const updateLocalCache = (type: 'INSERT' | 'UPDATE' | 'DELETE', payload: any, cacheKey: string) => {
   const currentCache = JSON.parse(localStorage.getItem(cacheKey) || '[]')
   let newCache = [...currentCache]
   
@@ -103,29 +97,56 @@ export const mutateData = async (
   }
   
   localStorage.setItem(cacheKey, JSON.stringify(newCache))
-  window.dispatchEvent(new Event('local_cache_updated')) // Trigger re-render
+  window.dispatchEvent(new Event('local_cache_updated'))
+}
 
-  // 2. Check explicitly if offline
+/**
+ * Universal Mutator: Handles optimistic UI updates, Supabase mutation, and offline queueing safely.
+ */
+export const mutateData = async (
+  table: string, 
+  type: 'INSERT' | 'UPDATE' | 'DELETE', 
+  payload: any, 
+  cacheKey: string
+) => {
+  // 1. Save backup of current cache
+  const backupCacheStr = localStorage.getItem(cacheKey) || '[]'
+  
+  // 2. Optimistic Update Local Cache (Instant UI reaction)
+  updateLocalCache(type, payload, cacheKey)
+
+  // 3. Check explicitly if offline
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     addToOfflineQueue({ table, type, payload })
     return { success: true, offline: true }
   }
 
-  // 3. Try to execute directly to Supabase
+  // 4. Try to execute directly to Supabase
   try {
+    let error = null
     if (type === 'INSERT') {
-      const { error } = await supabase.from(table).insert(payload)
-      if (error) return { success: false, error }
+      const { error: err } = await supabase.from(table).insert(payload)
+      error = err
     } else if (type === 'UPDATE') {
-      const { error } = await supabase.from(table).update(payload).eq('id', payload.id)
-      if (error) return { success: false, error }
+      const { error: err } = await supabase.from(table).update(payload).eq('id', payload.id)
+      error = err
     } else if (type === 'DELETE') {
-      const { error } = await supabase.from(table).delete().eq('id', payload.id)
-      if (error) return { success: false, error }
+      const { error: err } = await supabase.from(table).delete().eq('id', payload.id)
+      error = err
     }
+    
+    // If Supabase rejected the payload (e.g. schema error, constraint violation)
+    if (error) {
+      console.error(`Supabase DB Error in mutateData for ${table}:`, error)
+      // ROLLBACK CACHE
+      localStorage.setItem(cacheKey, backupCacheStr)
+      window.dispatchEvent(new Event('local_cache_updated'))
+      return { success: false, error }
+    }
+    
     return { success: true, offline: false }
   } catch (err) {
-    // True network exception
+    // True network exception (fetch failed)
     console.error('Network exception during mutation, queueing...', err)
     addToOfflineQueue({ table, type, payload })
     return { success: true, offline: true }

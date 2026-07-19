@@ -11,13 +11,28 @@ export interface TrashItem {
   guru_id: string
 }
 
+export const getCacheKeyForTable = (table: string) => {
+  const map: Record<string, string> = {
+    'school_classes': 'tahfidz_classes',
+    'students': 'tahfidz_students',
+    'targets': 'tahfidz_targets',
+    'schedules': 'tahfidz_schedules',
+    'meetings': 'tahfidz_meetings',
+    'attendance_records': 'tahfidz_attendance_records',
+    'memorization_records': 'tahfidz_memorization_records',
+    'payments': 'tahfidz_payments',
+    'lesson_groups': 'tahfidz_lesson_groups',
+    'private_students': 'tahfidz_private_students',
+    'audit_logs': 'tahfidz_audit_logs',
+    'todos': 'tahfidz_todos'
+  }
+  return map[table] || table
+}
+
 export async function moveToTrash(tableName: string, itemId: string, itemName: string, deletedBy: string = 'Guru', guruId: string) {
-  // We don't cascade delete in frontend anymore, we rely on Supabase ON DELETE CASCADE.
-  // We just fetch the item to save its state.
   try {
     const { data: mainItem } = await supabase.from(tableName).select('*').eq('id', itemId).single()
     if (!mainItem) {
-      // fallback to local if offline?
       console.warn('Item not found in supabase, deleting from cache anyway')
     }
 
@@ -35,7 +50,7 @@ export async function moveToTrash(tableName: string, itemId: string, itemName: s
     mutateData('audit_logs', 'INSERT', trashData, 'tahfidz_audit_logs')
 
     // Delete from original table
-    mutateData(tableName, 'DELETE', { id: itemId }, tableName)
+    mutateData(tableName, 'DELETE', { id: itemId }, getCacheKeyForTable(tableName))
     
     return true
   } catch (err) {
@@ -51,7 +66,7 @@ export function restoreFromTrash(trashId: string) {
   if (!trashItem) return false
 
   // Restore main item
-  mutateData(trashItem.original_table, 'INSERT', trashItem.data, trashItem.original_table)
+  mutateData(trashItem.original_table, 'INSERT', trashItem.data, getCacheKeyForTable(trashItem.original_table))
 
   // Delete from audit_logs
   mutateData('audit_logs', 'DELETE', { id: trashId }, 'tahfidz_audit_logs')
