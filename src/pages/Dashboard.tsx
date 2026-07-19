@@ -467,10 +467,10 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
             <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-              <button style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '10px', borderRadius: '50%', cursor: 'pointer' }}>
+              <button onClick={() => navigate('/aktivitas')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '10px', borderRadius: '50%', cursor: 'pointer' }}>
                 <Bell size={20} />
               </button>
-              <button style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '10px', borderRadius: '50%', cursor: 'pointer' }}>
+              <button onClick={() => navigate('/pengaturan')} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '10px', borderRadius: '50%', cursor: 'pointer' }}>
                 <Settings size={20} />
               </button>
             </div>

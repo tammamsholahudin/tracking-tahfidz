@@ -17,6 +17,7 @@ const LessonIndex = lazy(() => import('@/pages/lesson/LessonIndex'))
 const PrivateIndex = lazy(() => import('@/pages/private/PrivateIndex'))
 const TrashIndex = lazy(() => import('@/pages/TrashIndex'))
 const ParentPortal = lazy(() => import('@/pages/portal/ParentPortal'))
+const AktivitasTerakhir = lazy(() => import('@/pages/AktivitasTerakhir'))
 
 import '@/styles/global.css'
 
@@ -75,6 +76,7 @@ export default function App() {
               <Route path="/sampah"            element={<TrashIndex />} />
               <Route path="/profil"            element={<Profile />} />
               <Route path="/pengaturan"        element={<Pengaturan />} />
+              <Route path="/aktivitas"         element={<AktivitasTerakhir />} />
             </Route>
           </Route>
 
