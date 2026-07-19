@@ -1,0 +1,562 @@
+/* =============================================
+   PARENT PORTAL — Portal Wali Murid
+   Color palette: #316342 (primary green), #f4fafd (bg)
+   Fonts: Plus Jakarta Sans + Source Serif 4
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&display=swap');
+
+/* ── Base ── */
+.portalRoot {
+  min-height: 100vh;
+  background: #f4fafd;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #161d1f;
+}
+
+/* ── Top bar ── */
+.topbar {
+  background: #316342;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 12px rgba(49,99,66,0.15);
+}
+.topbarLogo {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.topbarSub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  font-weight: 500;
+}
+
+/* ── Search Page ── */
+.searchPage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 56px);
+  padding: 32px 16px;
+}
+.searchCard {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 32px rgba(49,99,66,0.10);
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.searchIcon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #e1ffe5, #b9efc5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  font-size: 28px;
+}
+.searchTitle {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #316342;
+  text-align: center;
+  line-height: 1.25;
+}
+.searchSub {
+  font-size: 14px;
+  color: #414942;
+  text-align: center;
+  line-height: 1.6;
+  margin-top: -12px;
+}
+.classChip {
+  background: #e8eff1;
+  border: 1px solid #c1c9bf;
+  border-radius: 24px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #316342;
+  text-align: center;
+  width: fit-content;
+  margin: 0 auto;
+}
+.searchForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.inputLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #414942;
+  margin-bottom: 4px;
+  display: block;
+}
+.searchInput {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid #c1c9bf;
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #161d1f;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.searchInput:focus {
+  outline: none;
+  border-color: #316342;
+  box-shadow: 0 0 0 3px rgba(49,99,66,0.12);
+}
+.searchInput::placeholder {
+  color: #a0a8a2;
+}
+.searchBtn {
+  background: #316342;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(49,99,66,0.25);
+}
+.searchBtn:hover { background: #264f35; box-shadow: 0 4px 16px rgba(49,99,66,0.3); }
+.searchBtn:active { transform: scale(0.98); }
+.searchBtn:disabled { background: #9dd3aa; cursor: not-allowed; box-shadow: none; }
+
+/* ── Error/Not Found ── */
+.notFound {
+  background: #fff3cd;
+  border: 1px solid #f0c040;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.notFoundIcon { font-size: 20px; flex-shrink: 0; }
+.notFoundText h4 { font-size: 14px; font-weight: 700; color: #92400e; margin: 0 0 4px; }
+.notFoundText p { font-size: 13px; color: #78350f; margin: 0; line-height: 1.5; }
+
+/* ── Ambiguous / Multiple Match ── */
+.multiPage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: calc(100vh - 56px);
+  padding: 32px 16px;
+}
+.multiCard {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(49,99,66,0.09);
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+}
+.multiTitle {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #316342;
+  margin: 0 0 6px;
+}
+.multiSub { font-size: 14px; color: #414942; margin: 0 0 24px; }
+.studentList { display: flex; flex-direction: column; gap: 12px; }
+.studentChoice {
+  border: 1.5px solid #c1c9bf;
+  border-radius: 14px;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+}
+.studentChoice:hover {
+  border-color: #316342;
+  background: #f0faf3;
+  box-shadow: 0 2px 12px rgba(49,99,66,0.1);
+}
+.choiceAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a7c59, #316342);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.choiceName { font-size: 15px; font-weight: 700; color: #161d1f; }
+.choiceClass { font-size: 12px; color: #414942; margin-top: 2px; }
+.backBtn {
+  margin-top: 20px;
+  background: transparent;
+  border: 1.5px solid #c1c9bf;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #414942;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.backBtn:hover { border-color: #316342; color: #316342; }
+
+/* ── Report Page ── */
+.reportPage {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+/* Header bar */
+.reportHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.reportHeaderLeft { display: flex; align-items: center; gap: 10px; }
+.reportBackBtn {
+  background: transparent;
+  border: 1.5px solid #c1c9bf;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #414942;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  transition: border-color 0.2s, color 0.2s;
+}
+.reportBackBtn:hover { border-color: #316342; color: #316342; }
+.downloadBtn {
+  background: #316342;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  box-shadow: 0 2px 10px rgba(49,99,66,0.25);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+.downloadBtn:hover { background: #264f35; box-shadow: 0 4px 16px rgba(49,99,66,0.3); }
+.downloadBtn:active { transform: scale(0.97); }
+
+/* Report Card — main container */
+.reportCard {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 32px rgba(49,99,66,0.09);
+  overflow: hidden;
+}
+
+/* Report Card Header */
+.reportCardHeader {
+  background: linear-gradient(135deg, #316342, #4a7c59);
+  padding: 28px 32px;
+  color: #fff;
+}
+.reportCardTitle {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+.reportCardPeriod {
+  font-size: 13px;
+  opacity: 0.8;
+  font-weight: 500;
+}
+.reportCardBrand {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-top: 8px;
+}
+
+/* Student identity block */
+.identityBlock {
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: start;
+  border-bottom: 1px solid #e8eff1;
+}
+.identityLeft { display: flex; gap: 20px; align-items: flex-start; }
+.studentAvatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a7c59, #316342);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  font-family: 'Source Serif 4', Georgia, serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #316342;
+  flex-shrink: 0;
+}
+.studentName {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #161d1f;
+  margin: 0 0 4px;
+}
+.studentMeta { font-size: 13px; color: #414942; margin: 0; }
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 24px;
+  margin-top: 12px;
+}
+.infoRow { display: flex; flex-direction: column; gap: 1px; }
+.infoLabel { font-size: 11px; color: #717971; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.infoValue { font-size: 13px; color: #161d1f; font-weight: 600; }
+
+/* Circular progress on identity */
+.circleWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.circleSvg { position: relative; }
+.circleLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #717971;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+.circleCenter {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.circlePct {
+  font-size: 18px;
+  font-weight: 700;
+  color: #316342;
+  line-height: 1;
+  display: block;
+}
+.circleDetail {
+  font-size: 10px;
+  color: #414942;
+  font-weight: 500;
+}
+
+/* Stats grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-bottom: 1px solid #e8eff1;
+}
+.statCell {
+  padding: 20px 20px;
+  border-right: 1px solid #e8eff1;
+}
+.statCell:last-child { border-right: none; }
+.statCellLabel { font-size: 11px; color: #717971; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+.statCellValue { font-size: 24px; font-weight: 700; color: #316342; line-height: 1; font-family: 'Source Serif 4', Georgia, serif; }
+.statCellSub { font-size: 11px; color: #414942; font-weight: 500; margin-top: 4px; }
+
+/* Section block */
+.section { padding: 24px 32px; border-bottom: 1px solid #e8eff1; }
+.section:last-child { border-bottom: none; }
+.sectionTitle {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #161d1f;
+  margin: 0 0 16px;
+  padding-left: 12px;
+  border-left: 4px solid #316342;
+}
+
+/* Attendance chips */
+.attGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.attChip {
+  border-radius: 12px;
+  padding: 14px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.attChip.green { background: #e1ffe5; }
+.attChip.yellow { background: #fef9c3; }
+.attChip.blue { background: #e0f2fe; }
+.attChip.red { background: #fee2e2; }
+.attChipVal { font-size: 26px; font-weight: 700; }
+.attChip.green .attChipVal { color: #166534; }
+.attChip.yellow .attChipVal { color: #854d0e; }
+.attChip.blue .attChipVal { color: #1e40af; }
+.attChip.red .attChipVal { color: #991b1b; }
+.attChipLabel { font-size: 11px; font-weight: 600; color: #414942; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Timeline UI */
+.timelineWrap {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 20px;
+}
+.timelineWrap::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 8px; bottom: 0;
+  width: 2px;
+  background: #e8eff1;
+}
+.timelineItem {
+  position: relative;
+  padding-bottom: 24px;
+}
+.timelineItem:last-child {
+  padding-bottom: 0;
+}
+.timelineDot {
+  position: absolute;
+  left: -20px; top: 4px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #316342;
+  border: 3px solid #f4fafd;
+}
+.timelineContent {
+  background: #fff;
+  border: 1px solid #e8eff1;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.timelineHeader {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 8px;
+}
+.timelineDate {
+  font-size: 12px;
+  color: #717971;
+  font-weight: 500;
+}
+.timelineTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.surahName { font-weight: 700; color: #161d1f; font-size: 16px; }
+.surahVerse { font-size: 13px; color: #414942; }
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge.selesai { background: rgba(49,99,66,0.12); color: #316342; }
+.badge.muroja { background: rgba(204,167,48,0.15); color: #735c00; }
+
+.timelineNote {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e8eff1;
+}
+.noteText { font-size: 13px; color: #414942; font-style: italic; line-height: 1.4; display: block; }
+
+/* Empty state */
+.emptyState {
+  text-align: center;
+  padding: 32px;
+  color: #717971;
+  font-size: 14px;
+}
+.emptyIcon { font-size: 36px; margin-bottom: 8px; }
+
+/* Report footer */
+.reportFooter {
+  padding: 20px 32px;
+  background: #f4fafd;
+  text-align: center;
+  border-top: 1px solid #e8eff1;
+}
+.reportFooterText { font-size: 11px; color: #717971; }
+.reportFooterHadith { font-size: 11px; color: #414942; font-style: italic; margin-top: 4px; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .searchCard { padding: 28px 20px; }
+  .searchTitle { font-size: 22px; }
+  .reportPage { padding: 16px 12px 48px; }
+  .reportCardHeader { padding: 20px 20px; }
+  .reportCardTitle { font-size: 22px; }
+  .identityBlock {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  .identityLeft { flex-direction: column; align-items: center; text-align: center; }
+  .infoGrid { grid-template-columns: 1fr 1fr; }
+  .circleWrap { margin: 0 auto; }
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .statCell { border-right: none; border-bottom: 1px solid #e8eff1; }
+  .statCell:nth-child(odd) { border-right: 1px solid #e8eff1; }
+  .statCell:nth-last-child(-n+2) { border-bottom: none; }
+  .section { padding: 20px 16px; }
+  .attGrid { grid-template-columns: repeat(2, 1fr); }
+  .reportHeader { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 400px) {
+  .statsGrid { grid-template-columns: 1fr 1fr; }
+  .topbarLogo { font-size: 16px; }
+}

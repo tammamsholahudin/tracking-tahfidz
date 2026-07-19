@@ -1,0 +1,132 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-bottom: var(--space-8);
+}
+
+.headerCard {
+  background: white;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--clr-gray-200);
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2) 0;
+  color: var(--clr-gray-900);
+}
+
+.subtitle {
+  color: var(--clr-gray-500);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.roleBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--clr-gray-100);
+  border: 1px solid var(--clr-gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--clr-gray-700);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.roleBtn:hover {
+  background: var(--clr-gray-200);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--space-8);
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--clr-gray-300);
+  color: var(--clr-gray-500);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.tableWrap {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--clr-gray-200);
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th, .table td {
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--clr-gray-100);
+}
+
+.table th {
+  background: var(--clr-gray-50);
+  font-weight: 600;
+  color: var(--clr-gray-600);
+}
+
+.badge {
+  padding: 4px 8px;
+  background: var(--clr-primary-50);
+  color: var(--clr-primary-700);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--clr-primary-200);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.btnRestore {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--clr-success);
+  color: var(--clr-success);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btnRestore:hover { background: #f0fdf4; }
+
+.btnHardDelete {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid var(--clr-danger);
+  color: var(--clr-danger);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btnHardDelete:hover:not(:disabled) { background: #fef2f2; }
