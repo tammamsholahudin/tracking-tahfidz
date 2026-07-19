@@ -206,8 +206,11 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_teachers_user_id ON public.teachers(user_id);
 
+DROP POLICY IF EXISTS "Teacher can view any profile" ON public.teachers;
 CREATE POLICY "Teacher can view any profile" 
 ON public.teachers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Teacher can update own profile" ON public.teachers;
 CREATE POLICY "Teacher can update own profile" 
 ON public.teachers FOR UPDATE USING (user_id = auth.uid());
 
