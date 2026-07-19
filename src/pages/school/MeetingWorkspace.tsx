@@ -54,6 +54,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
       const p = allPrivates.find((x: any) => x.id === entityId)
       if (p) activeStudents = [p]
     }
+    activeStudents.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
     setStudents(activeStudents)
 
     const draftStr = localStorage.getItem(draftKey)
@@ -308,13 +309,13 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
           
           <div className={styles.studentList}>
             {students.length === 0 && <div style={{ textAlign: 'center', padding: 20 }}>Belum ada siswa.</div>}
-            {students.map(s => (
+            {students.map((s, idx) => (
               <div key={s.id} className={styles.studentRow}>
                 <div className={styles.studentHeader}>
                   <div className={styles.studentInfo}>
                     <div className={styles.avatar}>{(s.name || '?').charAt(0).toUpperCase()}</div>
                     <div>
-                      <div className={styles.studentName}>{s.name}</div>
+                      <div className={styles.studentName}>{idx + 1}. {s.name}</div>
                       <div className={styles.studentNis}>{s.nis}</div>
                     </div>
                   </div>
@@ -372,7 +373,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
                     <div className={styles.studentInfo}>
                       <div className={styles.avatar}>{(s.name || '?').charAt(0).toUpperCase()}</div>
                       <div>
-                        <div className={styles.studentName}>{s.name}</div>
+                        <div className={styles.studentName}>{students.findIndex(st => st.id === s.id) + 1}. {s.name}</div>
                         {mem ? (
                           <div style={{ fontSize: '12px', color: 'var(--clr-primary-600)', fontWeight: 600 }}>
                             {mem.surah_name} ({mem.verse_start}-{mem.verse_end}) • {mem.score}

@@ -335,12 +335,13 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
 
             {(() => {
               const records = attendanceData.filter((a: any) => a.meeting_id === selectedMeeting.id)
+              records.sort((a: any, b: any) => (a.student_name || '').localeCompare(b.student_name || ''))
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {records.map((a: any) => (
+                  {records.map((a: any, idx: number) => (
                     <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', borderBottom: '1px dashed var(--clr-gray-100)', background: 'transparent', borderRadius: '4px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <Users size={16} color="var(--clr-gray-400)" />
+                        <span style={{ fontSize: '12px', color: 'var(--clr-gray-500)', fontWeight: 600, width: 20 }}>{idx + 1}.</span>
                         <span style={{ fontWeight: 500, fontSize: '14px' }}>{a.student_name}</span>
                       </div>
                       <span className={`badge badge-${a.status}`} style={{ fontSize: '10px' }}>

@@ -176,6 +176,7 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
                       style={{ accentColor: 'var(--clr-primary-600)' }} 
                     />
                   </th>
+                  <th style={{ padding: 'var(--space-3)' }}>No</th>
                   <th style={{ padding: 'var(--space-3)' }}>Tanggal</th>
                   <th style={{ padding: 'var(--space-3)' }}>Nama Siswa</th>
                   <th style={{ padding: 'var(--space-3)' }}>Surat</th>
@@ -187,7 +188,7 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
                 </tr>
               </thead>
               <tbody>
-                {memorizations.map((m) => {
+                {memorizations.map((m, idx) => {
                   const isSelected = selectedIds.includes(m.id)
                   return (
                     <tr 
@@ -205,6 +206,7 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
                           style={{ accentColor: 'var(--clr-primary-600)' }} 
                         />
                       </td>
+                      <td style={{ padding: 'var(--space-3)', fontWeight: 600, color: 'var(--clr-gray-500)', textAlign: 'center' }}>{idx + 1}</td>
                       <td style={{ padding: 'var(--space-3)', color: 'var(--clr-gray-500)' }}>{formatDate(m.date)}</td>
                       <td style={{ padding: 'var(--space-3)', fontWeight: 600 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

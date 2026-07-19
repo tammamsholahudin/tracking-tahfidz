@@ -225,7 +225,7 @@ export default function Pengaturan() {
                 </div>
                 <div className={styles.aboutRow}>
                   <span>Mode</span>
-                  <strong>☁️ Offline-First Local</strong>
+                  <strong>🟢 Cloud Tersinkronisasi</strong>
                 </div>
                 <div className={styles.aboutRow}>
                   <span>Role</span>

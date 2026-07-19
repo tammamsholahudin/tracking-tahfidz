@@ -110,6 +110,7 @@ export default function ClassDashboard() {
           mappedStudents = [localClass] 
         }
         
+        mappedStudents.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
         setStudents(mappedStudents)
 
         const localTargets = getSync('tahfidz_targets')
@@ -499,6 +500,7 @@ export default function ClassDashboard() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--clr-gray-200)', textAlign: 'left' }}>
+                        <th style={{ padding: '12px', color: 'var(--clr-gray-500)', width: 40 }}>No</th>
                         <th style={{ padding: '12px', color: 'var(--clr-gray-500)' }}>NIS</th>
                         <th style={{ padding: '12px', color: 'var(--clr-gray-500)' }}>Nama Lengkap</th>
                         <th style={{ padding: '12px', color: 'var(--clr-gray-500)' }}>Status</th>
@@ -507,8 +509,9 @@ export default function ClassDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {students.map((s: any) => (
+                      {students.map((s: any, idx: number) => (
                         <tr key={s.id} style={{ borderBottom: '1px solid var(--clr-gray-100)' }}>
+                          <td style={{ padding: '12px', color: 'var(--clr-gray-500)', fontWeight: 600 }}>{idx + 1}</td>
                           <td style={{ padding: '12px' }}>{s.nis || '-'}</td>
                           <td style={{ padding: '12px', fontWeight: '500' }}>{s.name || 'Siswa Tanpa Nama'}</td>
                           <td style={{ padding: '12px' }}>

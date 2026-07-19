@@ -129,7 +129,7 @@ export default function Profile() {
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Tentang Aplikasi</h2>
           <div className={styles.infoRow}><span>Versi</span><strong>1.0.0</strong></div>
-          <div className={styles.infoRow}><span>Mode</span><strong>☁️ Offline-First Local</strong></div>
+          <div className={styles.infoRow}><span>Mode</span><strong>🟢 Cloud Tersinkronisasi</strong></div>
           <div className={styles.infoRow}><span>Aplikasi</span><strong>Tracking Tahfidz MAM!</strong></div>
         </div>
 
