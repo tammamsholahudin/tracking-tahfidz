@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   School, Home, TrendingUp, Users, Calendar as CalendarIcon, 
-  Clock, MapPin, Bell, Settings, FileText, CheckCircle2, AlertTriangle, Plus, Loader2
+  Clock, MapPin, Bell, Settings, FileText, CheckCircle2, AlertTriangle, Plus, Loader2, X
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { formatTanggal } from '@/data/surahs'
@@ -414,6 +414,21 @@ export default function Dashboard() {
       setTodos(todos) 
     }
     setIsAddingTodo(false)
+  }
+
+  const deleteTodo = async (id: string) => {
+    // Optimistic UI Update
+    const oldTodos = [...todos]
+    setTodos(todos.filter(t => t.id !== id))
+    
+    // Save to DB
+    const res = await mutateData('todos', 'DELETE', { id }, 'tahfidz_todos')
+    if (res.success) {
+      toast.success('To Do dihapus')
+    } else {
+      toast.error('Gagal menghapus To Do')
+      setTodos(oldTodos) // rollback
+    }
   }
 
   const handleMasukKelas = (sched: Schedule | null) => {
@@ -845,10 +860,19 @@ export default function Dashboard() {
               <h3 className={styles.widgetTitle}><CheckCircle2 size={16}/> To-Do Guru</h3>
               <div className={styles.todoList}>
                 {todos.map(t => (
-                  <label key={t.id} className={styles.todoItem}>
-                    <input type="checkbox" checked={t.done} onChange={() => toggleTodo(t.id)} />
-                    <span className={`${styles.todoText} ${t.done ? styles.todoDone : ''}`}>{t.text}</span>
-                  </label>
+                  <div key={t.id} className={styles.todoItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: '4px', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1, margin: 0 }}>
+                      <input type="checkbox" checked={t.done} onChange={() => toggleTodo(t.id)} style={{ margin: 0 }} />
+                      <span className={`${styles.todoText} ${t.done ? styles.todoDone : ''}`} style={{ flex: 1 }}>{t.text}</span>
+                    </label>
+                    <button 
+                      onClick={() => deleteTodo(t.id)} 
+                      style={{ background: 'transparent', border: 'none', color: 'var(--clr-gray-400)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      title="Hapus To Do"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
               <form onSubmit={addTodo} className={styles.todoAdd}>
