@@ -335,6 +335,7 @@ export default function Dashboard() {
   let nextMeeting: Schedule | null = null
 
   for (const s of dailySchedules) {
+    if (!s.start_time || !s.end_time) continue
     const sStart = parseInt(s.start_time.split(':')[0]) * 60 + parseInt(s.start_time.split(':')[1])
     const sEnd = parseInt(s.end_time.split(':')[0]) * 60 + parseInt(s.end_time.split(':')[1])
     
@@ -347,7 +348,8 @@ export default function Dashboard() {
     }
   }
 
-  const getStatus = (start: string, end: string) => {
+  const getStatus = (start?: string, end?: string) => {
+    if (!start || !end) return { label: 'Tidak ada jadwal', class: styles.status_belum }
     const sStart = parseInt(start.split(':')[0]) * 60 + parseInt(start.split(':')[1])
     const sEnd = parseInt(end.split(':')[0]) * 60 + parseInt(end.split(':')[1])
     if (currentMinutes < sStart) return { label: 'Belum Dimulai', class: styles.status_belum }
@@ -656,8 +658,8 @@ export default function Dashboard() {
                           {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map(d => (
                             <div key={d} className={scheduleStyles.eventCol}>
                               {filteredSchedules.filter(s => s.day === d).map(s => {
-                                const [startH, startM] = s.start_time.split(':').map(Number)
-                                const [endH, endM] = s.end_time.split(':').map(Number)
+                                const [startH, startM] = (s.start_time || '00:00').split(':').map(Number)
+                                const [endH, endM] = (s.end_time || '00:00').split(':').map(Number)
                                 const topPx = ((startH - 7) * 60) + startM
                                 const durationMins = ((endH * 60) + endM) - ((startH * 60) + startM)
                                 
