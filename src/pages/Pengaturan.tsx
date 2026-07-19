@@ -23,10 +23,18 @@ export default function Pengaturan() {
   const handleSaveInstitution = async () => {
     if (!instName.trim()) { toast.error('Nama instansi tidak boleh kosong.'); return }
     setSavingInst(true)
-    await new Promise(r => setTimeout(r, 400))
+    
+    // Save to local state for fast UI update and PDF/Excel helpers
     updateSettings({ institutionName: instName.trim(), institutionSubtitle: instSub.trim() || institutionSubtitle })
+    
+    // Save to Supabase to sync across devices
+    await useAuthStore.getState().updateProfile({ 
+      institution_name: instName.trim(), 
+      institution_subtitle: instSub.trim() || institutionSubtitle 
+    })
+    
     setSavingInst(false)
-    toast.success('Nama instansi berhasil disimpan!')
+    toast.success('Nama instansi berhasil disimpan dan disinkronisasikan!')
   }
 
   // Change Password state

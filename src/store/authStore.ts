@@ -13,6 +13,8 @@ export interface TeacherProfile {
   photo_url: string | null
   role: UserRole
   is_active: boolean
+  institution_name?: string | null
+  institution_subtitle?: string | null
 }
 
 interface AuthState {

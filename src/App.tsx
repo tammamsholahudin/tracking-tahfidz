@@ -21,8 +21,20 @@ const AktivitasTerakhir = lazy(() => import('@/pages/AktivitasTerakhir'))
 
 import '@/styles/global.css'
 
+import { useSettingsStore } from '@/store/settingsStore'
+
 export default function App() {
-  const { initialize } = useAuthStore()
+  const { initialize, profile } = useAuthStore()
+  const { updateSettings } = useSettingsStore()
+
+  useEffect(() => {
+    if (profile) {
+      updateSettings({
+        institutionName: profile.institution_name || 'MADRASAH ALIYAH MUHAMMADIYAH',
+        institutionSubtitle: profile.institution_subtitle || 'Tracking Tahfidz MAM!'
+      })
+    }
+  }, [profile, updateSettings])
 
   useEffect(() => {
     initialize()

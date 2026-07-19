@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS public.teachers (
     photo_url TEXT,
     role TEXT DEFAULT 'guru',
     is_active BOOLEAN DEFAULT true,
+    institution_name TEXT,
+    institution_subtitle TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
