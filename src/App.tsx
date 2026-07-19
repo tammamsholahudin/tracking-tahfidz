@@ -4,6 +4,7 @@ import { Suspense, lazy, useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import AuthGuard from '@/layouts/AuthGuard'
 import AppLayout from '@/layouts/AppLayout'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 // Lazy Load Pages
 const Login = lazy(() => import('@/pages/Login'))
@@ -69,41 +70,43 @@ export default function App() {
         }}
       />
 
-      <Suspense fallback={<div className="lazy-loader">Memuat halaman...</div>}>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/portal/:classId" element={<ParentPortal />} />
+      <ErrorBoundary>
+        <Suspense fallback={<div className="lazy-loader">Memuat halaman...</div>}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/portal/:classId" element={<ParentPortal />} />
 
-          {/* Protected */}
-          <Route element={<AuthGuard />}>
-            <Route element={<AppLayout />}>
-              <Route path="/dashboard"         element={<Dashboard />} />
-              <Route path="/sekolah"           element={<SchoolIndex />} />
-              <Route path="/sekolah/:classId"  element={<ClassDashboard />} />
-              <Route path="/les"               element={<LessonIndex />} />
-              <Route path="/les/:classId"      element={<ClassDashboard />} />
-              <Route path="/privat"            element={<PrivateIndex />} />
-              <Route path="/privat/:classId"   element={<ClassDashboard />} />
-              <Route path="/sampah"            element={<TrashIndex />} />
-              <Route path="/profil"            element={<Profile />} />
-              <Route path="/pengaturan"        element={<Pengaturan />} />
-              <Route path="/aktivitas"         element={<AktivitasTerakhir />} />
+            {/* Protected */}
+            <Route element={<AuthGuard />}>
+              <Route element={<AppLayout />}>
+                <Route path="/dashboard"         element={<Dashboard />} />
+                <Route path="/sekolah"           element={<SchoolIndex />} />
+                <Route path="/sekolah/:classId"  element={<ClassDashboard />} />
+                <Route path="/les"               element={<LessonIndex />} />
+                <Route path="/les/:classId"      element={<ClassDashboard />} />
+                <Route path="/privat"            element={<PrivateIndex />} />
+                <Route path="/privat/:classId"   element={<ClassDashboard />} />
+                <Route path="/sampah"            element={<TrashIndex />} />
+                <Route path="/profil"            element={<Profile />} />
+                <Route path="/pengaturan"        element={<Pengaturan />} />
+                <Route path="/aktivitas"         element={<AktivitasTerakhir />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Admin Only */}
-          <Route element={<AuthGuard requiredRole="admin" />}>
-            <Route element={<AppLayout />}>
-              <Route path="/master"  element={<MasterIndex />} />
+            {/* Admin Only */}
+            <Route element={<AuthGuard requiredRole="admin" />}>
+              <Route element={<AppLayout />}>
+                <Route path="/master"  element={<MasterIndex />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Fallback */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Suspense>
+            {/* Fallback */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </BrowserRouter>
   )
 }
