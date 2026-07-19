@@ -180,13 +180,12 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     // Save Meeting
     const newMeeting = {
       id: meetingId,
-      entity_id: entityId,
-      entity_type: entityType,
-      class_id: entityType === 'sekolah' ? entityId : null,
+      class_id: entityId,
       guru_id: activeWorkspaceId,
       date: meetingDate,
-      notes: meetingNotes,
-      total_students: students.length
+      summary: meetingNotes,
+      status: 'Pembelajaran',
+      created_at: meetingDate
     }
     await mutateData('meetings', 'INSERT', newMeeting, 'tahfidz_meetings')
 
@@ -194,14 +193,11 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     const newAttRecords = students.map(s => ({
       id: `att-${Date.now()}-${s.id}`,
       meeting_id: meetingId,
-      entity_id: entityId,
-      entity_type: entityType,
-      class_id: entityType === 'sekolah' ? entityId : null,
+      class_id: entityId,
       guru_id: activeWorkspaceId,
       student_id: s.id,
-      student_name: s.name,
       status: attendance[s.id] || 'alpa',
-      date: meetingDate
+      created_at: meetingDate
     }))
     if (newAttRecords.length > 0) {
       await mutateData('attendance_records', 'INSERT', newAttRecords, 'tahfidz_attendance_records')
@@ -210,18 +206,21 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     // Save Memorizations
     const newMemRecords = Object.keys(memorizations).map(studentId => {
       const m = memorizations[studentId]
-      const s = students.find(st => st.id === studentId)
       return {
         id: `mem-${Date.now()}-${studentId}`,
         meeting_id: meetingId,
-        entity_id: entityId,
-        entity_type: entityType,
-        class_id: entityType === 'sekolah' ? entityId : null,
+        class_id: entityId,
         guru_id: activeWorkspaceId,
         student_id: studentId,
-        student_name: s?.name,
-        date: meetingDate,
-        ...m
+        created_at: meetingDate,
+        surah_id: m.surah_id,
+        surah_name: m.surah_name,
+        juz: m.juz,
+        verse_start: m.verse_start,
+        verse_end: m.verse_end,
+        score: m.score,
+        status: m.status,
+        note: m.note
       }
     })
     

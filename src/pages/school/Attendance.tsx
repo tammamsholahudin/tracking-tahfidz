@@ -22,14 +22,10 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
 
   const loadData = () => {
     const allMeetings = getSync('tahfidz_meetings')
-    const classMeetings = allMeetings.filter((m: any) => 
-      entityType === 'sekolah' ? m.class_id === entityId : m.entity_id === entityId
-    ).reverse()
+    const classMeetings = allMeetings.filter((m: any) => m.class_id === entityId).reverse()
     
     const allAtt = getSync('tahfidz_attendance_records')
-    const classAtt = allAtt.filter((a: any) => 
-      entityType === 'sekolah' ? a.class_id === entityId : a.entity_id === entityId
-    )
+    const classAtt = allAtt.filter((a: any) => a.class_id === entityId)
     
     const meetingsWithStats = classMeetings.map((m: any) => {
       const mAtt = classAtt.filter((a: any) => a.meeting_id === m.id)

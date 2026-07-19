@@ -113,14 +113,10 @@ export default function ClassDashboard() {
         setStudents(mappedStudents)
 
         const localTargets = getSync('tahfidz_targets')
-        setTargets(localTargets.filter((t: any) => 
-          (entityType === 'sekolah' ? t.class_id === classId : t.entity_id === classId)
-        ))
+        setTargets(localTargets.filter((t: any) => t.class_id === classId))
         
         const allMeetings = getSync('tahfidz_meetings')
-        const classMeetings = allMeetings.filter((m: any) => 
-          (entityType === 'sekolah' ? m.class_id === classId : (m.entity_id === classId && m.entity_type === entityType))
-        )
+        const classMeetings = allMeetings.filter((m: any) => m.class_id === classId)
         
         const allAtt = getSync('tahfidz_attendance_records')
         let totalAtt = 0
@@ -134,8 +130,8 @@ export default function ClassDashboard() {
 
         const allMem = getSync('tahfidz_memorization_records')
         const todayStr = new Date().toISOString().split('T')[0]
-        const classMem = allMem.filter((m: any) => (entityType === 'sekolah' ? m.class_id === classId : m.entity_id === classId))
-        const todaySetoran = classMem.filter((m: any) => m.date?.startsWith(todayStr)).length
+        const classMem = allMem.filter((m: any) => m.class_id === classId)
+        const todaySetoran = classMem.filter((m: any) => m.date?.startsWith(todayStr) || m.created_at?.startsWith(todayStr)).length
 
         setStats({ meetings: classMeetings.length, attendancePct, todaySetoran })
         setMemorizationRecords(classMem)

@@ -46,21 +46,17 @@ export default function AddMeetingModal({ entityId, entityType = 'sekolah', enti
     try {
       const existing = getSync('tahfidz_meetings')
       // Count existing meetings for this entity to auto-increment meeting number
-      const entityMeetings = existing.filter((m: any) => 
-        entityType === 'sekolah' ? m.class_id === entityId : m.entity_id === entityId
-      )
+      const entityMeetings = existing.filter((m: any) => m.class_id === entityId)
       const meetingNumber = entityMeetings.length + 1
 
       const newMeeting = {
         id: `meet-${Date.now()}`,
-        entity_id: entityId,
-        entity_type: entityType,
-        class_id: entityType === 'sekolah' ? entityId : null,
+        class_id: entityId,
         guru_id: activeWorkspaceId,
         meeting_number: meetingNumber,
         date,
         status,
-        status_note: note,
+        summary: note,
         created_at: new Date().toISOString()
       }
 

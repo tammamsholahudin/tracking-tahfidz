@@ -22,9 +22,7 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
 
   const loadData = () => {
     const allMem = getSync('tahfidz_memorization_records')
-    const classMem = allMem.filter((m: any) => 
-      entityType === 'sekolah' ? m.class_id === entityId : m.entity_id === entityId
-    ).reverse() // newest first
+    const classMem = allMem.filter((m: any) => m.class_id === entityId).reverse() // newest first
     setMemorizations(classMem)
   }
 

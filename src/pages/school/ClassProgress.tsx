@@ -27,14 +27,10 @@ export default function ClassProgressPage({ entityId, entityType = 'sekolah' }: 
     setStudents(activeStudents)
     
     const allTargets = getSync('tahfidz_targets')
-    setTargets(allTargets.filter((t: any) => 
-      entityType === 'sekolah' ? t.class_id === entityId : t.entity_id === entityId
-    ))
+    setTargets(allTargets.filter((t: any) => t.class_id === entityId))
     
     const allMem = getSync('tahfidz_memorization_records')
-    setRecords(allMem.filter((m: any) => 
-      entityType === 'sekolah' ? m.class_id === entityId : m.entity_id === entityId
-    ))
+    setRecords(allMem.filter((m: any) => m.class_id === entityId))
   }, [entityId, entityType])
 
   // Calculate progress for each student
