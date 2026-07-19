@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ClipboardList, Users, CheckCircle2, XCircle, Clock, Heart, Calendar, Trash2, Edit, CheckSquare, Printer } from 'lucide-react'
+import { ClipboardList, CheckCircle2, XCircle, Clock, Heart, Calendar, Trash2, Edit, CheckSquare, Printer } from 'lucide-react'
 import { exportAttendanceExcel } from '@/lib/excel'
 import { exportAttendancePDF } from '@/lib/pdf'
 import { getSync, mutateData } from '@/lib/db'

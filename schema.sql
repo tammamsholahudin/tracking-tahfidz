@@ -216,6 +216,21 @@ DROP POLICY IF EXISTS "Teacher can update own profile" ON public.teachers;
 CREATE POLICY "Teacher can update own profile" 
 ON public.teachers FOR UPDATE USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Admin can insert teacher profile" ON public.teachers;
+CREATE POLICY "Admin can insert teacher profile" 
+ON public.teachers FOR INSERT 
+WITH CHECK ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+
+DROP POLICY IF EXISTS "Admin can update any teacher profile" ON public.teachers;
+CREATE POLICY "Admin can update any teacher profile" 
+ON public.teachers FOR UPDATE 
+USING ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+
+DROP POLICY IF EXISTS "Admin can delete teacher profile" ON public.teachers;
+CREATE POLICY "Admin can delete teacher profile" 
+ON public.teachers FOR DELETE 
+USING ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+
 CREATE POLICY "Guru Isolation - school_classes" ON public.school_classes FOR ALL 
 USING (
   (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin' OR 

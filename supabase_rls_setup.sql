@@ -194,6 +194,18 @@ CREATE POLICY "Teacher can update own profile"
 ON public.teachers FOR UPDATE 
 USING (user_id = auth.uid());
 
+CREATE POLICY "Admin can insert teacher profile" 
+ON public.teachers FOR INSERT 
+WITH CHECK ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+
+CREATE POLICY "Admin can update any teacher profile" 
+ON public.teachers FOR UPDATE 
+USING ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+
+CREATE POLICY "Admin can delete teacher profile" 
+ON public.teachers FOR DELETE 
+USING ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+
 -- CLASSES
 CREATE POLICY "Guru can CRUD own classes" 
 ON public.school_classes FOR ALL 

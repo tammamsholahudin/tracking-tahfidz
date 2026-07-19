@@ -141,7 +141,12 @@ export default function MasterIndex() {
 
     if (editTarget) {
       const payload = { id: editTarget.id, name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim(), role: form.role }
-      await mutateData('teachers', 'UPDATE', payload, STORAGE_KEY)
+      const res = await mutateData('teachers', 'UPDATE', payload, STORAGE_KEY)
+      if (res && res.success === false) {
+        toast.error('Gagal memperbarui data: ' + (res.error?.message || 'DB Error'))
+        setSaving(false)
+        return
+      }
       
       // Migrate password if email changed
       if (editTarget.email.toLowerCase() !== form.email.trim().toLowerCase()) {
@@ -170,7 +175,12 @@ export default function MasterIndex() {
         is_active: true,
         created_at: new Date().toISOString(),
       }
-      await mutateData('teachers', 'INSERT', newTeacher, STORAGE_KEY)
+      const res = await mutateData('teachers', 'INSERT', newTeacher, STORAGE_KEY)
+      if (res && res.success === false) {
+        toast.error('Gagal menambahkan guru: ' + (res.error?.message || 'Pastikan RLS Supabase sudah diatur.'))
+        setSaving(false)
+        return
+      }
       // Save password for demo-mode login
       if (form.password) savePassword(form.email, form.password)
       toast.success(`Guru "${newTeacher.name}" berhasil ditambahkan!`)
@@ -183,7 +193,11 @@ export default function MasterIndex() {
   const handleToggleActive = async (t: Teacher) => {
     const action = t.is_active ? 'nonaktifkan' : 'aktifkan kembali'
     if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} akun ${t.name}?`)) return
-    await mutateData('teachers', 'UPDATE', { id: t.id, is_active: !t.is_active }, STORAGE_KEY)
+    const res = await mutateData('teachers', 'UPDATE', { id: t.id, is_active: !t.is_active }, STORAGE_KEY)
+    if (res && res.success === false) {
+      toast.error('Gagal mengubah status: ' + (res.error?.message || 'DB Error'))
+      return
+    }
     toast.success(`Akun ${t.name} berhasil di-${action}.`)
   }
 
