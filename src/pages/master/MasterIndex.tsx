@@ -39,7 +39,7 @@ function savePassword(email: string, password: string) {
 }
 
 function generateId() {
-  return `teacher-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+  return crypto.randomUUID()
 }
 
 // ── Default Modal State ────────────────────────────────────────────────────
