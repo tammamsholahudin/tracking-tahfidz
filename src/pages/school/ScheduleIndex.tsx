@@ -20,6 +20,8 @@ export default function ScheduleIndex({ entityId, entityType = 'sekolah', entity
 
   useEffect(() => {
     loadSchedules()
+    window.addEventListener('local_cache_updated', loadSchedules)
+    return () => window.removeEventListener('local_cache_updated', loadSchedules)
   }, [entityId, entityType])
 
   const loadSchedules = () => {

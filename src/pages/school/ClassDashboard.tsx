@@ -75,6 +75,8 @@ export default function ClassDashboard() {
 
   useEffect(() => {
     fetchClassData()
+    window.addEventListener('local_cache_updated', fetchClassData)
+    return () => window.removeEventListener('local_cache_updated', fetchClassData)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId, activeWorkspaceId])
 
