@@ -21,6 +21,7 @@ import FabMenu from '@/components/FabMenu'
 import ExportModal from '@/components/ExportModal'
 import ImportStudentModal from '@/components/ImportStudentModal'
 import AddStudentModal from '@/components/AddStudentModal'
+import EditStudentModal from '@/components/EditStudentModal'
 import SetJadwalModal from '@/components/SetJadwalModal'
 import AddMeetingModal from '@/components/AddMeetingModal'
 import MeetingWorkspace from './MeetingWorkspace'
@@ -40,6 +41,7 @@ export default function ClassDashboard() {
   const [showExport, setShowExport] = useState<'absensi' | 'hafalan' | null>(null)
   const [showImport, setShowImport] = useState(false)
   const [showAddStudent, setShowAddStudent] = useState(false)
+  const [showEditStudent, setShowEditStudent] = useState<any>(null)
   const [showSetJadwal, setShowSetJadwal] = useState(false)
   const [showAddMeeting, setShowAddMeeting] = useState(false)
   
@@ -546,15 +548,20 @@ export default function ClassDashboard() {
                             />
                           </td>
                           <td style={{ padding: '12px', textAlign: 'right' }}>
-                            <button className={styles.btnOutline} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => {
-                               if (confirm('Hapus siswa ini? Data akan dipindahkan ke Sampah.')) {
-                                 moveToTrash('students', s.id, s.name, 'Guru', activeWorkspaceId || '')
-                                 setStudents(students.filter(st => st.id !== s.id))
-                                 toast.success('Siswa dipindahkan ke Sampah')
-                               }
-                            }}>
-                              Hapus
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                              <button className={styles.btnOutline} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => setShowEditStudent(s)}>
+                                Edit
+                              </button>
+                              <button className={styles.btnOutline} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => {
+                                 if (confirm('Hapus siswa ini? Data akan dipindahkan ke Sampah.')) {
+                                   moveToTrash('students', s.id, s.name, 'Guru', activeWorkspaceId || '')
+                                   setStudents(students.filter(st => st.id !== s.id))
+                                   toast.success('Siswa dipindahkan ke Sampah')
+                                 }
+                              }}>
+                                Hapus
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -980,6 +987,18 @@ export default function ClassDashboard() {
           onClose={() => setShowAddStudent(false)}
           onSuccess={() => {
             setShowAddStudent(false)
+            fetchClassData()
+          }}
+        />
+      )}
+
+      {showEditStudent && (
+        <EditStudentModal
+          studentData={showEditStudent}
+          entityType={entityType}
+          onClose={() => setShowEditStudent(null)}
+          onSuccess={() => {
+            setShowEditStudent(null)
             fetchClassData()
           }}
         />

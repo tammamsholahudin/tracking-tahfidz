@@ -27,7 +27,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
   // Meeting state
   const [meetingNotes, setMeetingNotes] = useState('')
   const [attendance, setAttendance] = useState<Record<string, AttStatus>>({})
-  const [memorizations, setMemorizations] = useState<Record<string, any>>({})
+  const [memorizations, setMemorizations] = useState<Record<string, any[]>>({})
   
   // Draft state
   const [showDraftDialog, setShowDraftDialog] = useState(false)
@@ -125,19 +125,14 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
   }
 
   const openSetoranForm = (studentId: string) => {
-    const existing = memorizations[studentId]
-    if (existing) {
-      setTempSetoran(existing)
-    } else {
-      setTempSetoran({
-        surah_id: 78,
-        verse_start: 1,
-        verse_end: 5,
-        status: 'lancar',
-        score: 85,
-        note: ''
-      })
-    }
+    setTempSetoran({
+      surah_id: 78,
+      verse_start: 1,
+      verse_end: 5,
+      status: 'lancar',
+      score: 85,
+      note: ''
+    })
     setActiveSetoranForm(studentId)
   }
 
@@ -160,16 +155,39 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
       return
     }
 
+    setMemorizations(prev => {
+      const studentMems = prev[studentId] || []
+      return {
+        ...prev,
+        [studentId]: [
+          ...studentMems,
+          {
+            ...tempSetoran,
+            surah_name: surah?.name_latin,
+            juz: surah ? getJuzFromSurah(surah.number) : 30,
+            tempId: Date.now() // used to uniquely identify in the UI before DB
+          }
+        ]
+      }
+    })
+    
+    // Auto reset form to allow another input quickly
+    setTempSetoran({
+      surah_id: tempSetoran.surah_id,
+      verse_start: tempSetoran.verse_start,
+      verse_end: tempSetoran.verse_end,
+      status: 'lancar',
+      score: 85,
+      note: ''
+    })
+    toast.success('Setoran ditambahkan ke daftar')
+  }
+
+  const removeSetoran = (studentId: string, tempId: number) => {
     setMemorizations(prev => ({
       ...prev,
-      [studentId]: {
-        ...tempSetoran,
-        surah_name: surah?.name_latin,
-        juz: surah ? getJuzFromSurah(surah.number) : 30
-      }
+      [studentId]: prev[studentId].filter(m => m.tempId !== tempId)
     }))
-    setActiveSetoranForm(null)
-    toast.success('Setoran tersimpan ke draft')
   }
 
   const handleFinishMeeting = async () => {
@@ -205,23 +223,28 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     }
 
     // Save Memorizations
-    const newMemRecords = Object.keys(memorizations).map(studentId => {
-      const m = memorizations[studentId]
-      return {
-        id: `mem-${Date.now()}-${studentId}`,
-        meeting_id: meetingId,
-        class_id: entityId,
-        guru_id: activeWorkspaceId,
-        student_id: studentId,
-        created_at: meetingDate,
-        surah_id: m.surah_id,
-        surah_name: m.surah_name,
-        juz: m.juz,
-        verse_start: m.verse_start,
-        verse_end: m.verse_end,
-        score: m.score,
-        status: m.status,
-        note: m.note
+    const newMemRecords: any[] = []
+    Object.keys(memorizations).forEach(studentId => {
+      const mems = memorizations[studentId]
+      if (Array.isArray(mems)) {
+        mems.forEach((m, idx) => {
+          newMemRecords.push({
+            id: `mem-${Date.now()}-${studentId}-${idx}`,
+            meeting_id: meetingId,
+            class_id: entityId,
+            guru_id: activeWorkspaceId,
+            student_id: studentId,
+            created_at: meetingDate,
+            surah_id: m.surah_id,
+            surah_name: m.surah_name,
+            juz: m.juz,
+            verse_start: m.verse_start,
+            verse_end: m.verse_end,
+            score: m.score,
+            status: m.status,
+            note: m.note
+          })
+        })
       }
     })
     
@@ -249,7 +272,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
   const totalIzin = Object.values(attendance).filter(v => v === 'izin').length
   const totalSakit = Object.values(attendance).filter(v => v === 'sakit').length
   const totalAlpa = Object.values(attendance).filter(v => v === 'alpa').length
-  const totalSetoran = Object.keys(memorizations).length
+  const totalSetoran = Object.values(memorizations).reduce((acc: number, arr) => acc + (Array.isArray(arr) ? arr.length : 0), 0)
 
   return (
     <div className={styles.wrap}>
@@ -374,9 +397,9 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
                       <div className={styles.avatar}>{(s.name || '?').charAt(0).toUpperCase()}</div>
                       <div>
                         <div className={styles.studentName}>{students.findIndex(st => st.id === s.id) + 1}. {s.name}</div>
-                        {mem ? (
+                        {mem && mem.length > 0 ? (
                           <div style={{ fontSize: '12px', color: 'var(--clr-primary-600)', fontWeight: 600 }}>
-                            {mem.surah_name} ({mem.verse_start}-{mem.verse_end}) • {mem.score}
+                            {mem.length} setoran tersimpan
                           </div>
                         ) : (
                           <div className={styles.studentNis}>Belum Setor</div>
@@ -386,15 +409,41 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
                     <button 
                       className={styles.btnAction} 
                       onClick={() => isEditing ? setActiveSetoranForm(null) : openSetoranForm(s.id)}
-                      style={{ color: mem ? 'var(--clr-success)' : 'inherit', borderColor: mem ? 'var(--clr-success)' : 'inherit' }}
+                      style={{ color: mem && mem.length > 0 ? 'var(--clr-success)' : 'inherit', borderColor: mem && mem.length > 0 ? 'var(--clr-success)' : 'inherit' }}
                     >
-                      {mem ? <><CheckCircle2 size={14} style={{ display: 'inline', marginRight: 4 }}/> Edit Setoran</> : 'Input Setoran'}
+                      {mem && mem.length > 0 ? <><CheckCircle2 size={14} style={{ display: 'inline', marginRight: 4 }}/> Tambah / Edit Setoran</> : 'Input Setoran'}
                       {isEditing ? <ChevronUp size={14} style={{ display: 'inline', marginLeft: 4 }}/> : <ChevronDown size={14} style={{ display: 'inline', marginLeft: 4 }}/>}
                     </button>
                   </div>
 
                   {isEditing && (
-                    <div className={styles.setoranForm}>
+                    <div className={styles.setoranFormWrap} style={{ padding: 'var(--space-3)', background: 'var(--clr-gray-50)', borderTop: '1px solid var(--clr-gray-200)' }}>
+                      
+                      {/* Daftar setoran yang sudah diinput untuk siswa ini */}
+                      {mem && mem.length > 0 && (
+                        <div style={{ marginBottom: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <h4 style={{ margin: 0, fontSize: '12px', color: 'var(--clr-gray-500)' }}>Setoran Tersimpan:</h4>
+                          {mem.map((m: any, idx: number) => (
+                            <div key={m.tempId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--clr-gray-200)', fontSize: '13px' }}>
+                              <div>
+                                <strong>Setoran {idx + 1}:</strong> {m.surah_name} (Ayat {m.verse_start}-{m.verse_end})
+                                <div style={{ fontSize: '11px', color: 'var(--clr-gray-500)', marginTop: 2 }}>
+                                  Nilai: {m.score} | Status: {MEM_STATUS_OPTIONS.find(o => o.value === m.status)?.label || m.status}
+                                </div>
+                              </div>
+                              <button className="btn-outline" style={{ color: 'var(--clr-danger)', borderColor: 'var(--clr-danger)', padding: '4px 8px', fontSize: '11px' }} onClick={() => removeSetoran(s.id, m.tempId)}>
+                                Hapus
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <h4 style={{ margin: '0 0 var(--space-3) 0', fontSize: '13px', color: 'var(--clr-primary-700)' }}>
+                        {mem && mem.length > 0 ? '+ Tambah Setoran Baru' : 'Input Setoran Hafalan'}
+                      </h4>
+
+                      <div className={styles.setoranForm}>
                       <div>
                         <label className="form-label" style={{ fontSize: 11 }}>Surat</label>
                         <select 
@@ -469,13 +518,15 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
                       </div>
 
                       <div className={styles.setoranActions}>
-                        <button className={styles.btnAction} onClick={() => setActiveSetoranForm(null)}>Batal</button>
+                        <button className={styles.btnAction} onClick={() => setActiveSetoranForm(null)}>
+                          {mem && mem.length > 0 ? 'Selesai' : 'Batal'}
+                        </button>
                         <button 
                           className={styles.btnAction} 
                           style={{ background: 'var(--clr-primary-600)', color: 'white', borderColor: 'var(--clr-primary-600)' }}
                           onClick={() => saveSetoran(s.id)}
                         >
-                          Simpan Draft Setoran
+                          + Tambah Setoran
                         </button>
                       </div>
                     </div>

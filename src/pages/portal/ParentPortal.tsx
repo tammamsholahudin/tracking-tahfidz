@@ -96,9 +96,8 @@ async function generatePDF(student: Student, cls: ClassData, attData: {hadir:num
   doc.text(`Kelas: ${cls.name}`, 38, y + 8)
   doc.text(`Wali Kelas: ${cls.homeroom_teacher || '-'}`, 38, y + 13)
   doc.text(`Guru Tahfidz: ${teacherName}`, 38, y + 18)
-  doc.text(`Semester: ${cls.semester || 'Ganjil'}`, 38, y + 23)
-  doc.text(`Tahun Ajaran: ${cls.academic_year || '-'}`, 38, y + 28)
-  doc.text(`Tanggal Laporan: ${printDate}`, 38, y + 33)
+  doc.text(`Tahun Ajaran: ${cls.academic_year || '-'}`, 38, y + 23)
+  doc.text(`Tanggal Laporan: ${printDate}`, 38, y + 28)
 
   // Progress circle (right)
   const circX = pw - 30, circY = y + 12
@@ -261,8 +260,7 @@ export default function ParentPortal() {
           const { data: studentsData } = await supabase.from('students').select('*').eq('class_id', classId)
           if (studentsData) setStudents((studentsData as Student[]).filter(s => s.name))
 
-          const activeSemester = foundCls.semester || 'Ganjil'
-          const { data: targetsData } = await supabase.from('targets').select('*').eq('class_id', classId).eq('semester', activeSemester)
+          const { data: targetsData } = await supabase.from('targets').select('*').eq('class_id', classId)
           if (targetsData) setTargets(targetsData as Target[])
 
           const { data: attData } = await supabase.from('attendance_records').select('*').eq('class_id', classId)
@@ -520,10 +518,6 @@ export default function ParentPortal() {
                     <div className={styles.infoRow}>
                       <span className={styles.infoLabel}>Guru Tahfidz</span>
                       <span className={styles.infoValue}>{teacherName}</span>
-                    </div>
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Semester</span>
-                      <span className={styles.infoValue}>{cls.semester || 'Ganjil'}</span>
                     </div>
                     <div className={styles.infoRow}>
                       <span className={styles.infoLabel}>Tahun Ajaran</span>
