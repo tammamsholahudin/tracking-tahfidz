@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X, Save, Edit2 } from 'lucide-react'
 import { mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'

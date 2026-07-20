@@ -529,6 +529,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
                           + Tambah Setoran
                         </button>
                       </div>
+                      </div>
                     </div>
                   )}
                 </div>
