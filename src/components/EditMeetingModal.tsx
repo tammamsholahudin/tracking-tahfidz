@@ -129,9 +129,12 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
     const updatedMeeting = {
       ...meeting,
       date: new Date(date).toISOString(),
-      summary,
-      notes: summary // For backwards compatibility
+      summary
     }
+    
+    // Hapus properti yang tidak ada di skema database agar tidak ditolak oleh Supabase
+    delete updatedMeeting.notes
+    
     const meetRes = await mutateData('meetings', 'UPDATE', updatedMeeting, 'tahfidz_meetings')
     if (!meetRes.success) {
       toast.error('Gagal menyimpan jurnal pertemuan')
