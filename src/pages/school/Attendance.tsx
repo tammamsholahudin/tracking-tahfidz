@@ -3,6 +3,9 @@ import { ClipboardList, CheckCircle2, XCircle, Clock, Heart, Calendar, Trash2, E
 import { exportAttendanceExcel } from '@/lib/excel'
 import { exportAttendancePDF } from '@/lib/pdf'
 import { getSync, mutateData } from '@/lib/db'
+import { moveToTrash } from '@/lib/trash'
+import { useAuthStore } from '@/store/authStore'
+import EditMeetingModal from '@/components/EditMeetingModal'
 import toast from 'react-hot-toast'
 import styles from './Attendance.module.css'
 
@@ -18,7 +21,11 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null)
   
   // Bulk Actions State (For Meetings)
+  // Bulk Actions State (For Meetings)
   const [selectedMeetingIds, setSelectedMeetingIds] = useState<string[]>([])
+  const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null)
+  
+  const { activeWorkspace } = useAuthStore()
 
   const loadData = () => {
     const allMeetings = getSync('tahfidz_meetings')
@@ -66,16 +73,16 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
   }
 
   const handleMassDeleteMeetings = async () => {
-    if (!confirm(`Hapus ${selectedMeetingIds.length} pertemuan secara permanen? (Semua data absensi dan setoran terkait akan ikut terhapus)`)) return
+    if (!confirm(`Hapus ${selectedMeetingIds.length} pertemuan secara permanen? (Data akan dipindah ke Sampah)`)) return
     
     for (const id of selectedMeetingIds) {
       const m = meetings.find(x => x.id === id)
       if (m) {
-        await mutateData('meetings', 'DELETE', { id }, 'tahfidz_meetings')
+        await moveToTrash('meetings', id, `Pertemuan ${formatDate(m.date)}`, 'Guru', activeWorkspace?.id || '')
       }
     }
     
-    toast.success(`${selectedMeetingIds.length} pertemuan berhasil dihapus`)
+    toast.success(`${selectedMeetingIds.length} pertemuan berhasil dihapus ke Sampah`)
     setSelectedMeetingIds([])
   }
 
@@ -120,7 +127,7 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
       return row
     })
 
-    exportAttendancePDF(dataToExport, entityData, `Laporan_Absensi_${entityData.name}.pdf`)
+    exportAttendancePDF(dataToExport, entityData, `Laporan_Absensi_${entityData.name}.pdf`, exportMeetings)
   }
 
   const handleExportExcel = () => {
@@ -168,7 +175,11 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
   }
 
   const handleEditMeeting = () => {
-    toast('Silakan gunakan Edit dari dalam menu Pertemuan. Fitur ini dalam tahap pengembangan.', { icon: 'ℹ️' })
+    if (selectedMeetingIds.length > 1) {
+      toast.error('Pilih hanya satu pertemuan untuk diedit')
+      return
+    }
+    setEditingMeetingId(selectedMeetingIds[0])
   }
 
   return (
@@ -362,6 +373,21 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
             </button>
           </div>
         </div>
+      )}
+
+      {/* Modal Edit Pertemuan (Jurnal Mengajar) */}
+      {editingMeetingId && (
+        <EditMeetingModal
+          meetingId={editingMeetingId}
+          entityId={entityId}
+          entityType={entityType}
+          activeWorkspaceId={activeWorkspace?.id || ''}
+          onClose={() => setEditingMeetingId(null)}
+          onSuccess={() => {
+            setEditingMeetingId(null)
+            setSelectedMeetingIds([])
+          }}
+        />
       )}
     </div>
   )

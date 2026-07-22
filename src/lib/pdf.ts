@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable'
 import { getSettings } from '@/store/settingsStore'
 import { useAuthStore } from '@/store/authStore'
 
-export function exportAttendancePDF(data: any[], classData: any, filename = 'Laporan_Absensi.pdf') {
+export function exportAttendancePDF(data: any[], classData: any, filename = 'Laporan_Absensi.pdf', meetingsData: any[] = []) {
   const doc = new jsPDF('landscape')
 
   // --- HEADER ---
@@ -69,23 +69,64 @@ export function exportAttendancePDF(data: any[], classData: any, filename = 'Lap
   }
 
   // --- FOOTER ---
-  const finalY = (doc as any).lastAutoTable?.finalY || 60
-  if (finalY + 40 < doc.internal.pageSize.height) {
-    const printDate = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.text(`Cetak: ${printDate}`, 14, finalY + 15)
-
-    doc.text('Mengetahui,', 40, finalY + 20)
-    doc.text('Wali Kelas', 40, finalY + 25)
-    doc.text('ttd', 40, finalY + 35)
-    doc.text(homeroom, 40, finalY + 45)
-
-    const teacherName = useAuthStore.getState().profile?.name || 'Guru Tahfidz'
-    doc.text('Guru Tahfidz', doc.internal.pageSize.width - 80, finalY + 25)
-    doc.text('ttd', doc.internal.pageSize.width - 80, finalY + 35)
-    doc.text(teacherName, doc.internal.pageSize.width - 80, finalY + 45)
+  let finalY = (doc as any).lastAutoTable?.finalY || 60
+  
+  // --- JURNAL PERTEMUAN SECTION ---
+  if (meetingsData && meetingsData.length > 0) {
+    doc.addPage()
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('JURNAL MENGAJAR (CATATAN PERTEMUAN)', 14, 20)
+    doc.setLineWidth(0.5)
+    doc.line(14, 23, doc.internal.pageSize.width - 14, 23)
+    
+    let jY = 35
+    meetingsData.forEach((m: any, idx: number) => {
+      // Check page break
+      if (jY > doc.internal.pageSize.height - 40) {
+        doc.addPage()
+        jY = 20
+      }
+      
+      const mDate = new Date(m.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.text(`Pertemuan ${meetingsData.length - idx} - ${mDate}`, 14, jY)
+      
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      
+      const summaryText = m.summary || m.notes || '-'
+      // Split text to fit page width
+      const splitText = doc.splitTextToSize(summaryText, doc.internal.pageSize.width - 28)
+      doc.text(splitText, 14, jY + 6)
+      
+      jY += 6 + (splitText.length * 4) + 10 // Add spacing for next item
+    })
+    
+    finalY = jY
   }
+
+  // Ensure enough space for signature
+  if (finalY + 40 > doc.internal.pageSize.height) {
+    doc.addPage()
+    finalY = 20
+  }
+
+  const printDate = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(`Cetak: ${printDate}`, 14, finalY + 15)
+
+  doc.text('Mengetahui,', 40, finalY + 20)
+  doc.text('Wali Kelas', 40, finalY + 25)
+  doc.text('ttd', 40, finalY + 35)
+  doc.text(homeroom, 40, finalY + 45)
+
+  const teacherNameSign = useAuthStore.getState().profile?.name || 'Guru Tahfidz'
+  doc.text('Guru Tahfidz', doc.internal.pageSize.width - 80, finalY + 25)
+  doc.text('ttd', doc.internal.pageSize.width - 80, finalY + 35)
+  doc.text(teacherNameSign, doc.internal.pageSize.width - 80, finalY + 45)
 
   // Footer page numbers
   const pageCount = doc.getNumberOfPages()
