@@ -347,7 +347,7 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
                 <strong>Tip:</strong> Jika sebelumnya ada siswa yang lupa Anda masukkan setorannya, Anda dapat mengeklik tombol <strong>Tambah Setoran</strong> sekarang.
               </div>
 
-              {students.map((s, idx) => {
+              {students.map((s) => {
                 const mem = memorizations[s.id]
                 
                 return (

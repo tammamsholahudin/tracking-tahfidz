@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ClipboardList, CheckCircle2, XCircle, Clock, Heart, Calendar, Trash2, Edit, CheckSquare, Printer } from 'lucide-react'
 import { exportAttendanceExcel } from '@/lib/excel'
 import { exportAttendancePDF } from '@/lib/pdf'
-import { getSync, mutateData } from '@/lib/db'
+import { getSync } from '@/lib/db'
 import { moveToTrash } from '@/lib/trash'
 import { useAuthStore } from '@/store/authStore'
 import EditMeetingModal from '@/components/EditMeetingModal'
@@ -25,7 +25,7 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
   const [selectedMeetingIds, setSelectedMeetingIds] = useState<string[]>([])
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null)
   
-  const { activeWorkspace } = useAuthStore()
+  const { activeWorkspaceId } = useAuthStore()
 
   const loadData = () => {
     const allMeetings = getSync('tahfidz_meetings')
@@ -78,7 +78,7 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
     for (const id of selectedMeetingIds) {
       const m = meetings.find(x => x.id === id)
       if (m) {
-        await moveToTrash('meetings', id, `Pertemuan ${formatDate(m.date)}`, 'Guru', activeWorkspace?.id || '')
+        await moveToTrash('meetings', id, `Pertemuan ${formatDate(m.date)}`, 'Guru', activeWorkspaceId || '')
       }
     }
     
@@ -381,7 +381,7 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
           meetingId={editingMeetingId}
           entityId={entityId}
           entityType={entityType}
-          activeWorkspaceId={activeWorkspace?.id || ''}
+          activeWorkspaceId={activeWorkspaceId || ''}
           onClose={() => setEditingMeetingId(null)}
           onSuccess={() => {
             setEditingMeetingId(null)
