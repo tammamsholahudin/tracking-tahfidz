@@ -206,7 +206,11 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
       status: 'Pembelajaran',
       created_at: meetingDate
     }
-    await mutateData('meetings', 'INSERT', newMeeting, 'tahfidz_meetings')
+    const meetRes = await mutateData('meetings', 'INSERT', newMeeting, 'tahfidz_meetings')
+    if (!meetRes.success) {
+      toast.error(`Gagal menyimpan pertemuan: ${meetRes.error?.message || 'Error Database'}`)
+      return
+    }
 
     // Save Attendance
     const newAttRecords = students.map(s => ({
@@ -218,8 +222,13 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
       status: attendance[s.id] || 'alpa',
       created_at: meetingDate
     }))
+    
     if (newAttRecords.length > 0) {
-      await mutateData('attendance_records', 'INSERT', newAttRecords, 'tahfidz_attendance_records')
+      const attRes = await mutateData('attendance_records', 'INSERT', newAttRecords, 'tahfidz_attendance_records')
+      if (!attRes.success) {
+        toast.error(`Gagal menyimpan absensi: ${attRes.error?.message || 'Error Database'}`)
+        return
+      }
     }
 
     // Save Memorizations
@@ -234,22 +243,27 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
             class_id: entityId,
             guru_id: activeWorkspaceId,
             student_id: studentId,
+            date: meetingDate, // Added date field
             created_at: meetingDate,
-            surah_id: m.surah_id,
             surah_name: m.surah_name,
-            juz: m.juz,
-            verse_start: m.verse_start,
-            verse_end: m.verse_end,
-            score: m.score,
+            verse_start: String(m.verse_start), // Changed to TEXT
+            verse_end: String(m.verse_end), // Changed to TEXT
+            score: Number(m.score),
             status: m.status,
-            note: m.note
+            note: m.note || '',
+            surat_selesai: m.surat_selesai || false // Added surat_selesai
+            // Removed surah_id and juz because they don't exist in Supabase schema
           })
         })
       }
     })
     
     if (newMemRecords.length > 0) {
-      await mutateData('memorization_records', 'INSERT', newMemRecords, 'tahfidz_memorization_records')
+      const memRes = await mutateData('memorization_records', 'INSERT', newMemRecords, 'tahfidz_memorization_records')
+      if (!memRes.success) {
+        toast.error(`Gagal menyimpan setoran hafalan: ${memRes.error?.message || 'Error Database'}`)
+        return
+      }
     }
 
     localStorage.removeItem(draftKey) // Clean up draft

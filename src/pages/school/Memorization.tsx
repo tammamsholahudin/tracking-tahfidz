@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { BookOpen, Users, CheckSquare, Edit, Trash2, Download, Printer } from 'lucide-react'
 import { getSync, mutateData } from '@/lib/db'
+import { SURAHS } from '@/data/surahs'
+import { getJuzFromSurah } from '@/lib/progressEngine'
 import toast from 'react-hot-toast'
 import styles from './Memorization.module.css'
 
@@ -22,7 +24,22 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
 
   const loadData = () => {
     const allMem = getSync('tahfidz_memorization_records')
-    const classMem = allMem.filter((m: any) => m.class_id === entityId).reverse() // newest first
+    const allStudents = getSync('tahfidz_students')
+    
+    const classMem = allMem
+      .filter((m: any) => m.class_id === entityId)
+      .map((m: any) => {
+        const student = allStudents.find((s: any) => s.id === m.student_id)
+        const surah = SURAHS.find(s => s.name_latin === m.surah_name)
+        return {
+          ...m,
+          student_name: student?.name || 'Unknown Student',
+          juz: surah ? getJuzFromSurah(surah.number) : 30,
+          date: m.date || m.created_at
+        }
+      })
+      .reverse() // newest first
+      
     setMemorizations(classMem)
   }
 
