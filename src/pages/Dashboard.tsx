@@ -211,6 +211,12 @@ export default function Dashboard() {
 
     const pct = totalTarget > 0 ? Math.round((weeklySetoran / totalTarget) * 100) : 0
     setWeeklyStats({ target: totalTarget, setoran: weeklySetoran, pct })
+    // Create an allStudents array to find names
+    const allStudents = [
+      ...localStudents,
+      ...localLessonStudents, // defined above at line 192
+      ...localPrivates
+    ]
 
     // 5. Recent activities
     const localAtts = getSync('tahfidz_attendance_records')
@@ -218,10 +224,12 @@ export default function Dashboard() {
     
     localMems.forEach((m: any) => {
       const date = new Date(m.created_at || m.date)
+      const std = allStudents.find((s: any) => s.id === m.student_id)
+      const studentName = std?.name || m.student_name || 'Siswa'
       activities.push({
         id: m.id || `act-mem-${date.getTime()}-${Math.random()}`,
         time: formatActivityTime(date),
-        desc: `<strong>${m.student_name || 'Siswa'}</strong> setor ${m.surah_name || m.surah || ''} ${m.verse_start || ''}-${m.verse_end || ''}`,
+        desc: `<strong>${studentName}</strong> setor ${m.surah_name || m.surah || ''} ${m.verse_start || ''}-${m.verse_end || ''}`,
         rawDate: date
       })
     })
@@ -230,10 +238,12 @@ export default function Dashboard() {
       if (a.status !== 'hadir') {
         const date = new Date(a.created_at || a.date)
         const statusLabel = a.status === 'izin' ? 'Izin' : a.status === 'sakit' ? 'Sakit' : 'Belum Hadir'
+        const std = allStudents.find((s: any) => s.id === a.student_id)
+        const studentName = std?.name || a.student_name || 'Siswa'
         activities.push({
           id: a.id || `act-att-${date.getTime()}-${Math.random()}`,
           time: formatActivityTime(date),
-          desc: `<strong>${a.student_name || 'Siswa'}</strong> ditandai ${statusLabel}`,
+          desc: `<strong>${studentName}</strong> ditandai ${statusLabel}`,
           rawDate: date
         })
       }
@@ -244,13 +254,6 @@ export default function Dashboard() {
 
     // 6. Alerts (Attention warnings based on actual absent records and unconfigured schedules)
     const absentCounts: Record<string, { name: string; count: number; className: string }> = {}
-    
-    // Create an allStudents array to find names
-    const allStudents = [
-      ...localStudents,
-      ...localLessonStudents, // defined above at line 192
-      ...localPrivates
-    ]
 
     localAtts.forEach((a: any) => {
       if (a.status === 'alpa' || a.status === 'izin' || a.status === 'sakit') {
