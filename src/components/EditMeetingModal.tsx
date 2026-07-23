@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Calendar, ClipboardList, BookOpen, Users, CheckCircle2, Clock, Heart, XCircle, Save, Plus } from 'lucide-react'
+import { X, Calendar, ClipboardList, BookOpen, Users, CheckCircle2, Clock, Heart, XCircle, Save, Plus, Edit2, Trash2, Check } from 'lucide-react'
 import { getSync, mutateData } from '@/lib/db'
 import { SURAHS } from '@/data/surahs'
 import toast from 'react-hot-toast'
@@ -27,14 +27,17 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
   // State for Absensi
   const [attendance, setAttendance] = useState<Record<string, { id?: string, status: string }>>({})
 
-  // State for Memorizations
-  const [memorizations, setMemorizations] = useState<Record<string, any>>({}) // student_id -> mem data
+  // State for Memorizations (1 siswa bisa punya BANYAK setoran)
+  const [memorizations, setMemorizations] = useState<Record<string, any[]>>({})
+  const [deletedMemIds, setDeletedMemIds] = useState<string[]>([]) // Track deleted existing records
+  
+  // Track which forms are currently in "edit" mode open
+  const [editingMemIds, setEditingMemIds] = useState<string[]>([])
 
   // Tab
   const [activeTab, setActiveTab] = useState<'jurnal' | 'absensi' | 'hafalan'>('jurnal')
 
   useEffect(() => {
-    // Load Data
     const loadMeetingData = async () => {
       setLoading(true)
       
@@ -49,7 +52,6 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
       setMeeting(m)
       setDate(m.date ? m.date.slice(0, 10) : new Date().toISOString().slice(0, 10))
       
-      // Default template if empty
       const defaultSummary = `Materi:\n\nEvaluasi:\n\nKendala:\n\nCatatan:\n\nTarget Berikutnya:\n`
       setSummary(m.summary || m.notes || defaultSummary)
 
@@ -59,6 +61,8 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
         allStudents = getSync('tahfidz_students').filter((s:any) => s.class_id === entityId && s.name)
       } else if (entityType === 'les') {
         allStudents = getSync('tahfidz_lesson_students').filter((s:any) => s.group_id === entityId)
+      } else if (entityType === 'privat') {
+        // Special case for privat if needed
       }
       setStudents(allStudents)
 
@@ -77,12 +81,18 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
 
       // Load Memorizations for this meeting
       const allMems = getSync('tahfidz_memorization_records').filter((m: any) => m.meeting_id === meetingId)
-      const initMems: Record<string, any> = {}
-      allMems.forEach((m: any) => {
-        initMems[m.student_id] = { ...m } // Copy the db object
+      const initMems: Record<string, any[]> = {}
+      allStudents.forEach((s: any) => {
+        initMems[s.id] = []
       })
+      
+      allMems.forEach((m: any) => {
+        if (!initMems[m.student_id]) initMems[m.student_id] = []
+        // Add a local uiId to manage state without relying on db ID exclusively
+        initMems[m.student_id].push({ ...m, uiId: m.id }) 
+      })
+      
       setMemorizations(initMems)
-
       setLoading(false)
     }
 
@@ -96,30 +106,76 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
     }))
   }
 
-  const handleMemChange = (studentId: string, field: string, value: any) => {
-    setMemorizations(prev => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        [field]: value
-      }
-    }))
+  const handleMemChange = (studentId: string, uiId: string, field: string, value: any) => {
+    setMemorizations(prev => {
+      const studentMems = prev[studentId] || []
+      const updatedMems = studentMems.map(m => {
+        if (m.uiId === uiId) {
+          return { ...m, [field]: value }
+        }
+        return m
+      })
+      return { ...prev, [studentId]: updatedMems }
+    })
   }
 
   const handleAddMem = (studentId: string) => {
-    setMemorizations(prev => ({
-      ...prev,
-      [studentId]: {
-        isNew: true, // Flag to know it's a new insert
-        surah_name: SURAHS[0].name_latin,
-        verse_start: 1,
-        verse_end: 1,
-        score: 85,
-        status: 'lancar',
-        note: '',
-        surat_selesai: false
+    const newUiId = `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    
+    setMemorizations(prev => {
+      const studentMems = prev[studentId] || []
+      return {
+        ...prev,
+        [studentId]: [
+          ...studentMems,
+          {
+            uiId: newUiId,
+            isNew: true, // Flag to know it's a new insert
+            surah_name: SURAHS[0].name_latin,
+            verse_start: 1,
+            verse_end: 1,
+            score: 85,
+            status: 'lancar',
+            note: '',
+            surat_selesai: false
+          }
+        ]
       }
-    }))
+    })
+    
+    // Automatically open edit mode for the newly added form
+    setEditingMemIds(prev => [...prev, newUiId])
+  }
+  
+  const handleRemoveMem = (studentId: string, uiId: string) => {
+    if (confirm('Hapus setoran ini?')) {
+      const memToRemove = memorizations[studentId]?.find(m => m.uiId === uiId)
+      
+      // If it's an existing record from DB, track it for deletion
+      if (memToRemove && !memToRemove.isNew && memToRemove.id) {
+        setDeletedMemIds(prev => [...prev, memToRemove.id])
+      }
+      
+      // Remove from UI
+      setMemorizations(prev => {
+        const studentMems = prev[studentId] || []
+        return {
+          ...prev,
+          [studentId]: studentMems.filter(m => m.uiId !== uiId)
+        }
+      })
+      
+      // Remove from editing state
+      setEditingMemIds(prev => prev.filter(id => id !== uiId))
+    }
+  }
+
+  const toggleEditMem = (uiId: string) => {
+    if (editingMemIds.includes(uiId)) {
+      setEditingMemIds(prev => prev.filter(id => id !== uiId))
+    } else {
+      setEditingMemIds(prev => [...prev, uiId])
+    }
   }
 
   const handleSave = async () => {
@@ -131,9 +187,7 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
       date: new Date(date).toISOString(),
       summary
     }
-    
-    // Hapus properti yang tidak ada di skema database agar tidak ditolak oleh Supabase
-    delete updatedMeeting.notes
+    delete updatedMeeting.notes // Fix DB Schema error
     
     const meetRes = await mutateData('meetings', 'UPDATE', updatedMeeting, 'tahfidz_meetings')
     if (!meetRes.success) {
@@ -146,10 +200,8 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
     const attPromises = students.map(s => {
       const att = attendance[s.id]
       if (att.id) {
-        // Update existing
         return mutateData('attendance_records', 'UPDATE', { id: att.id, status: att.status }, 'tahfidz_attendance_records')
       } else {
-        // Insert new
         const newAtt = {
           id: `att-${Date.now()}-${s.id}`,
           meeting_id: meetingId,
@@ -164,44 +216,54 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
     })
     await Promise.all(attPromises)
 
-    // 3. Update/Insert Memorizations
-    const memPromises = Object.keys(memorizations).map(studentId => {
-      const m = memorizations[studentId]
-      
-      // If it has an ID, it's an update
-      if (m.id && !m.isNew) {
-        return mutateData('memorization_records', 'UPDATE', {
-          id: m.id,
-          surah_name: m.surah_name,
-          verse_start: String(m.verse_start),
-          verse_end: String(m.verse_end),
-          score: Number(m.score),
-          status: m.status,
-          note: m.note,
-          surat_selesai: m.surat_selesai || false
-        }, 'tahfidz_memorization_records')
-      } else if (m.isNew) {
-        // It's a newly added mem during edit
-        const newMem = {
-          id: `mem-${Date.now()}-${studentId}-${Math.random().toString(36).substr(2, 9)}`,
-          meeting_id: meetingId,
-          class_id: entityId,
-          guru_id: activeWorkspaceId,
-          student_id: studentId,
-          date: new Date(date).toISOString(),
-          created_at: new Date(date).toISOString(),
-          surah_name: m.surah_name,
-          verse_start: String(m.verse_start),
-          verse_end: String(m.verse_end),
-          score: Number(m.score),
-          status: m.status,
-          note: m.note,
-          surat_selesai: m.surat_selesai || false
-        }
-        return mutateData('memorization_records', 'INSERT', newMem, 'tahfidz_memorization_records')
-      }
-      return Promise.resolve()
+    // 3. Delete removed Memorizations
+    const deletePromises = deletedMemIds.map(id => {
+      return mutateData('memorization_records', 'DELETE', { id }, 'tahfidz_memorization_records')
     })
+    await Promise.all(deletePromises)
+
+    // 4. Update/Insert Memorizations
+    const memPromises: Promise<any>[] = []
+    
+    Object.keys(memorizations).forEach(studentId => {
+      const studentMems = memorizations[studentId] || []
+      
+      studentMems.forEach(m => {
+        // If it has an ID and not new, it's an update
+        if (m.id && !m.isNew) {
+          memPromises.push(mutateData('memorization_records', 'UPDATE', {
+            id: m.id,
+            surah_name: m.surah_name,
+            verse_start: String(m.verse_start),
+            verse_end: String(m.verse_end),
+            score: Number(m.score),
+            status: m.status,
+            note: m.note,
+            surat_selesai: m.surat_selesai || false
+          }, 'tahfidz_memorization_records'))
+        } else if (m.isNew) {
+          // It's a newly added mem during edit
+          const newMem = {
+            id: `mem-${Date.now()}-${studentId}-${Math.random().toString(36).substr(2, 9)}`,
+            meeting_id: meetingId,
+            class_id: entityId,
+            guru_id: activeWorkspaceId,
+            student_id: studentId,
+            date: new Date(date).toISOString(),
+            created_at: new Date(date).toISOString(),
+            surah_name: m.surah_name,
+            verse_start: String(m.verse_start),
+            verse_end: String(m.verse_end),
+            score: Number(m.score),
+            status: m.status,
+            note: m.note,
+            surat_selesai: m.surat_selesai || false
+          }
+          memPromises.push(mutateData('memorization_records', 'INSERT', newMem, 'tahfidz_memorization_records'))
+        }
+      })
+    })
+    
     await Promise.all(memPromises)
 
     setSaving(false)
@@ -276,7 +338,7 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
                   onChange={e => setSummary(e.target.value)}
                   placeholder="Materi:&#10;Evaluasi:&#10;Kendala:&#10;Catatan:&#10;Target:"
                 />
-                <small style={{ color: 'var(--clr-gray-500)', marginTop: '8px', display: 'block' }}>Gunakan format teks bebas untuk mencatat aktivitas kelas, materi talqin, evaluasi, dan kendala hari ini. Catatan ini akan muncul pada laporan.</small>
+                <small style={{ color: 'var(--clr-gray-500)', marginTop: '8px', display: 'block' }}>Gunakan format teks bebas untuk mencatat aktivitas kelas, materi talqin, evaluasi, dan kendala hari ini.</small>
               </div>
             </div>
           )}
@@ -347,85 +409,127 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
           {activeTab === 'hafalan' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={{ background: 'var(--clr-primary-50)', padding: '16px', borderRadius: '8px', color: 'var(--clr-primary-800)', fontSize: '14px', border: '1px solid var(--clr-primary-200)', marginBottom: '8px' }}>
-                <strong>Tip:</strong> Jika sebelumnya ada siswa yang lupa Anda masukkan setorannya, Anda dapat mengeklik tombol <strong>Tambah Setoran</strong> sekarang.
+                <strong>Multi-Setoran Aktif:</strong> Anda dapat menambahkan lebih dari satu setoran untuk tiap siswa. Data lama juga bisa diedit atau dihapus satuan.
               </div>
 
               {students.map((s) => {
-                const mem = memorizations[s.id]
+                const studentMems = memorizations[s.id] || []
                 
                 return (
-                  <div key={s.id} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-gray-200)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mem ? '16px' : '0' }}>
+                  <div key={s.id} style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid var(--clr-gray-200)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    {/* Header Siswa */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: studentMems.length > 0 ? '16px' : '0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--clr-primary-100)', color: 'var(--clr-primary-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '16px' }}>
                           {s.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, color: 'var(--clr-gray-900)', fontSize: '15px' }}>{s.name}</div>
-                          {mem && <div style={{ fontSize: '12px', color: 'var(--clr-gray-500)' }}>Mengubah data setoran...</div>}
-                          {!mem && <div style={{ fontSize: '12px', color: 'var(--clr-gray-500)' }}>Belum ada setoran di pertemuan ini</div>}
+                          {studentMems.length > 0 ? (
+                            <div style={{ fontSize: '12px', color: 'var(--clr-gray-500)' }}>{studentMems.length} setoran tercatat</div>
+                          ) : (
+                            <div style={{ fontSize: '12px', color: 'var(--clr-gray-500)' }}>Belum ada setoran</div>
+                          )}
                         </div>
                       </div>
-                      
-                      {!mem && (
-                        <button className="btn-outline" style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => handleAddMem(s.id)}>
-                          <Plus size={16} /> Tambah Setoran
-                        </button>
-                      )}
                     </div>
 
-                    {mem && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--clr-gray-50)', padding: '16px', borderRadius: '8px', border: '1px solid var(--clr-gray-100)' }}>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Surat</label>
-                          <select className="form-select" style={{ padding: '10px' }} value={mem.surah_name} onChange={e => handleMemChange(s.id, 'surah_name', e.target.value)}>
-                            {SURAHS.map(sur => (
-                              <option key={sur.number} value={sur.name_latin}>{sur.number}. {sur.name_latin}</option>
-                            ))}
-                          </select>
-                        </div>
-                        
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                          <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
-                            <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Ayat Awal</label>
-                            <input type="number" className="form-input" style={{ padding: '10px' }} value={mem.verse_start} onChange={e => handleMemChange(s.id, 'verse_start', e.target.value)} />
-                          </div>
-                          <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
-                            <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Ayat Akhir</label>
-                            <input type="number" className="form-input" style={{ padding: '10px' }} value={mem.verse_end} onChange={e => handleMemChange(s.id, 'verse_end', e.target.value)} />
-                          </div>
-                        </div>
+                    {/* Daftar Setoran */}
+                    {studentMems.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                        {studentMems.map((mem, idx) => {
+                          const isEditing = editingMemIds.includes(mem.uiId)
+                          
+                          return (
+                            <div key={mem.uiId} style={{ border: '1px solid var(--clr-gray-200)', borderRadius: '8px', overflow: 'hidden' }}>
+                              
+                              {/* Setoran Summary Bar */}
+                              <div style={{ background: 'var(--clr-gray-50)', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--clr-gray-500)' }}>Setoran {idx + 1}</span>
+                                  {!isEditing && (
+                                    <>
+                                      <span style={{ fontSize: '14px', fontWeight: 600 }}>Surat {mem.surah_name} (Ayat {mem.verse_start}-{mem.verse_end})</span>
+                                      <span style={{ background: 'var(--clr-success)', color: 'white', fontSize: '11px', padding: '2px 8px', borderRadius: '100px', fontWeight: 'bold' }}>Nilai: {mem.score}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button onClick={() => toggleEditMem(mem.uiId)} style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', background: isEditing ? 'var(--clr-gray-200)' : 'white', border: '1px solid var(--clr-gray-300)', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>
+                                    {isEditing ? <><Check size={14} /> Tutup</> : <><Edit2 size={14} /> Edit</>}
+                                  </button>
+                                  <button onClick={() => handleRemoveMem(s.id, mem.uiId)} style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', background: 'white', border: '1px solid var(--clr-danger)', color: 'var(--clr-danger)', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>
+                                    <Trash2 size={14} /> Hapus
+                                  </button>
+                                </div>
+                              </div>
 
-                        <div className="form-group" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
-                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, background: 'white', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--clr-gray-200)' }}>
-                            <input type="checkbox" checked={mem.surat_selesai} onChange={e => handleMemChange(s.id, 'surat_selesai', e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--clr-primary-600)' }} />
-                            Tandai Sudah Hafal 1 Surat Penuh
-                          </label>
-                        </div>
+                              {/* Setoran Edit Form */}
+                              {isEditing && (
+                                <div style={{ padding: '16px', background: 'white' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                      <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Surat</label>
+                                      <select className="form-select" style={{ padding: '10px' }} value={mem.surah_name} onChange={e => handleMemChange(s.id, mem.uiId, 'surah_name', e.target.value)}>
+                                        {SURAHS.map(sur => (
+                                          <option key={sur.number} value={sur.name_latin}>{sur.number}. {sur.name_latin}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                      <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+                                        <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Ayat Awal</label>
+                                        <input type="number" className="form-input" style={{ padding: '10px' }} value={mem.verse_start} onChange={e => handleMemChange(s.id, mem.uiId, 'verse_start', e.target.value)} />
+                                      </div>
+                                      <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+                                        <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Ayat Akhir</label>
+                                        <input type="number" className="form-input" style={{ padding: '10px' }} value={mem.verse_end} onChange={e => handleMemChange(s.id, mem.uiId, 'verse_end', e.target.value)} />
+                                      </div>
+                                    </div>
 
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Status Kelancaran</label>
-                          <select className="form-select" style={{ padding: '10px' }} value={mem.status} onChange={e => handleMemChange(s.id, 'status', e.target.value)}>
-                            <option value="sangat_lancar">Sangat Lancar</option>
-                            <option value="lancar">Lancar</option>
-                            <option value="cukup">Cukup</option>
-                            <option value="perlu_murojaah">Perlu Murojaah</option>
-                            <option value="belum_lancar">Belum Lancar</option>
-                          </select>
-                        </div>
+                                    <div className="form-group" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
+                                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, background: 'var(--clr-gray-50)', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--clr-gray-200)' }}>
+                                        <input type="checkbox" checked={mem.surat_selesai} onChange={e => handleMemChange(s.id, mem.uiId, 'surat_selesai', e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--clr-primary-600)' }} />
+                                        Tandai Sudah Hafal 1 Surat Penuh
+                                      </label>
+                                    </div>
 
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                          <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Nilai Angka (1-100)</label>
-                          <input type="number" className="form-input" style={{ padding: '10px' }} value={mem.score} onChange={e => handleMemChange(s.id, 'score', e.target.value)} />
-                        </div>
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                      <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Status Kelancaran</label>
+                                      <select className="form-select" style={{ padding: '10px' }} value={mem.status} onChange={e => handleMemChange(s.id, mem.uiId, 'status', e.target.value)}>
+                                        <option value="sangat_lancar">Sangat Lancar</option>
+                                        <option value="lancar">Lancar</option>
+                                        <option value="cukup">Cukup</option>
+                                        <option value="perlu_murojaah">Perlu Murojaah</option>
+                                        <option value="belum_lancar">Belum Lancar</option>
+                                      </select>
+                                    </div>
 
-                        <div className="form-group" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
-                          <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Catatan Guru (Opsional)</label>
-                          <input type="text" className="form-input" style={{ padding: '10px' }} placeholder="Contoh: Perlu perbaikan makharij huruf pada ayat 3" value={mem.note || ''} onChange={e => handleMemChange(s.id, 'note', e.target.value)} />
-                        </div>
-                        
+                                    <div className="form-group" style={{ marginBottom: 0 }}>
+                                      <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Nilai Angka (1-100)</label>
+                                      <input type="number" className="form-input" style={{ padding: '10px' }} value={mem.score} onChange={e => handleMemChange(s.id, mem.uiId, 'score', e.target.value)} />
+                                    </div>
+
+                                    <div className="form-group" style={{ marginBottom: 0, gridColumn: '1 / -1' }}>
+                                      <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Catatan Guru (Opsional)</label>
+                                      <input type="text" className="form-input" style={{ padding: '10px' }} placeholder="Contoh: Perlu perbaikan makharij huruf pada ayat 3" value={mem.note || ''} onChange={e => handleMemChange(s.id, mem.uiId, 'note', e.target.value)} />
+                                    </div>
+                                    
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
+
+                    {/* Tombol Tambah Setoran Siswa ini */}
+                    <button onClick={() => handleAddMem(s.id)} style={{ width: '100%', padding: '12px', background: 'white', border: '1px dashed var(--clr-primary-400)', color: 'var(--clr-primary-700)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}>
+                      <Plus size={18} /> Tambah Setoran Baru
+                    </button>
+                    
                   </div>
                 )
               })}

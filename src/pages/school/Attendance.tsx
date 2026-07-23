@@ -18,6 +18,7 @@ interface AttendancePageProps {
 export default function AttendancePage({ entityId, entityType = 'sekolah', entityData }: AttendancePageProps) {
   const [meetings, setMeetings] = useState<any[]>([])
   const [attendanceData, setAttendanceData] = useState<any[]>([])
+  const [students, setStudents] = useState<any[]>([])
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null)
   
   // Bulk Actions State (For Meetings)
@@ -47,6 +48,16 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
     
     setMeetings(meetingsWithStats)
     setAttendanceData(classAtt)
+
+    let allStudents = []
+    if (entityType === 'sekolah') {
+      allStudents = getSync('tahfidz_students').filter((s:any) => s.class_id === entityId && s.name)
+    } else if (entityType === 'les') {
+      allStudents = getSync('tahfidz_lesson_students').filter((s:any) => s.group_id === entityId)
+    } else if (entityType === 'privat') {
+      allStudents = [entityData]
+    }
+    setStudents(allStudents)
   }
 
   useEffect(() => {
@@ -346,24 +357,42 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
 
             {(() => {
               const records = attendanceData.filter((a: any) => a.meeting_id === selectedMeeting.id)
-              records.sort((a: any, b: any) => (a.student_name || '').localeCompare(b.student_name || ''))
+              
+              // Join records with students table
+              const joinedRecords = records.map(a => {
+                const s = students.find(student => student.id === a.student_id)
+                return {
+                  ...a,
+                  student_name: s ? s.name : 'Siswa tidak ditemukan'
+                }
+              })
+              
+              joinedRecords.sort((a: any, b: any) => (a.student_name || '').localeCompare(b.student_name || ''))
+              
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {records.map((a: any, idx: number) => (
-                    <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', borderBottom: '1px dashed var(--clr-gray-100)', background: 'transparent', borderRadius: '4px' }}>
+                  {joinedRecords.map((a: any, idx: number) => (
+                    <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderBottom: '1px dashed var(--clr-gray-100)', background: 'var(--clr-gray-50)', borderRadius: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '12px', color: 'var(--clr-gray-500)', fontWeight: 600, width: 20 }}>{idx + 1}.</span>
-                        <span style={{ fontWeight: 500, fontSize: '14px' }}>{a.student_name}</span>
+                        <span style={{ fontSize: '13px', color: 'var(--clr-gray-400)', fontWeight: 600, width: 24 }}>{idx + 1}.</span>
+                        <span style={{ fontWeight: 600, fontSize: '14px', color: a.student_name === 'Siswa tidak ditemukan' ? 'var(--clr-danger)' : 'var(--clr-gray-800)' }}>
+                          {a.student_name}
+                        </span>
                       </div>
-                      <span className={`badge badge-${a.status}`} style={{ fontSize: '10px' }}>
-                        {a.status === 'hadir' ? <CheckCircle2 size={12} />
-                         : a.status === 'izin' ? <Clock size={12} />
-                         : a.status === 'sakit' ? <Heart size={12} />
-                         : <XCircle size={12} />}
+                      <span className={`badge badge-${a.status}`} style={{ fontSize: '11px', padding: '4px 8px' }}>
+                        {a.status === 'hadir' ? <CheckCircle2 size={14} />
+                         : a.status === 'izin' ? <Clock size={14} />
+                         : a.status === 'sakit' ? <Heart size={14} />
+                         : <XCircle size={14} />}
                         {a.status.toUpperCase()}
                       </span>
                     </div>
                   ))}
+                  {joinedRecords.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: 'var(--space-4)', color: 'var(--clr-gray-500)' }}>
+                      Tidak ada data kehadiran untuk pertemuan ini.
+                    </div>
+                  )}
                 </div>
               )
             })()}
