@@ -29,6 +29,9 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
   const [attendance, setAttendance] = useState<Record<string, AttStatus>>({})
   const [memorizations, setMemorizations] = useState<Record<string, any[]>>({})
   
+  const [targets, setTargets] = useState<any[]>([])
+  const [historyMems, setHistoryMems] = useState<any[]>([])
+  
   // Draft state
   const [showDraftDialog, setShowDraftDialog] = useState(false)
   const [draftTimestamp, setDraftTimestamp] = useState<string | null>(null)
@@ -56,6 +59,12 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     }
     activeStudents.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
     setStudents(activeStudents)
+
+    const localTargets = getSync('tahfidz_targets')
+    setTargets(localTargets.filter((t: any) => t.class_id === entityId))
+
+    const allMems = getSync('tahfidz_memorization_records')
+    setHistoryMems(allMems)
 
     const draftStr = localStorage.getItem(draftKey)
     if (draftStr) {
@@ -124,13 +133,29 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     toast.success('Absensi di-reset')
   }
 
+  const getAutoScore = (status: string) => {
+    if (status === 'sangat_lancar') return 95
+    if (status === 'lancar') return 90
+    if (status === 'cukup_lancar') return 85
+    if (status === 'perlu_murojaah') return 80
+    if (status === 'ulangi' || status === 'belum_lancar') return 75
+    return 85
+  }
+
   const openSetoranForm = (studentId: string) => {
+    let defaultSurahId = 78
+    if (targets && targets.length > 0) {
+      const firstTargetSurah = targets[0].surah
+      const surahData = SURAHS.find(s => s.name_latin === firstTargetSurah)
+      if (surahData) defaultSurahId = surahData.number
+    }
+
     setTempSetoran({
-      surah_id: 78,
+      surah_id: defaultSurahId,
       verse_start: 1,
       verse_end: 5,
       status: 'lancar',
-      score: 85,
+      score: 90,
       note: ''
     })
     setActiveSetoranForm(studentId)
@@ -396,6 +421,19 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
             </label>
           </div>
 
+          {targets.length > 0 && (
+            <div style={{ background: 'var(--clr-primary-50)', padding: '12px 16px', margin: '0 16px', borderRadius: '8px', border: '1px solid var(--clr-primary-200)', marginBottom: '8px', fontSize: '13px' }}>
+              <div style={{ fontWeight: 'bold', color: 'var(--clr-primary-800)', marginBottom: '4px' }}>Target Semester:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {targets.map(t => (
+                  <span key={t.id} style={{ background: 'white', padding: '2px 8px', borderRadius: '100px', border: '1px solid var(--clr-primary-200)', color: 'var(--clr-primary-700)' }}>
+                    ✔ {t.surah}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className={styles.studentList}>
             {setoranStudents.length === 0 && (
               <div style={{ textAlign: 'center', padding: 20 }}>Tidak ada siswa yang hadir.</div>
@@ -403,6 +441,10 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
             {setoranStudents.map(s => {
               const isEditing = activeSetoranForm === s.id
               const mem = memorizations[s.id]
+
+              const studentHistory = historyMems.filter(m => m.student_id === s.id)
+              studentHistory.sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
+              const lastMem = studentHistory[0]
 
               return (
                 <div key={s.id} className={styles.studentRow}>
@@ -432,6 +474,41 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
 
                   {isEditing && (
                     <div className={styles.setoranFormWrap} style={{ padding: 'var(--space-3)', background: 'var(--clr-gray-50)', borderTop: '1px solid var(--clr-gray-200)' }}>
+                      
+                      {/* Riwayat Setoran Terakhir */}
+                      {lastMem && (
+                        <div style={{ marginBottom: 'var(--space-4)', background: 'white', padding: '12px', borderRadius: '8px', border: '1px dashed var(--clr-primary-300)' }}>
+                          <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--clr-primary-700)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            📖 Setoran Terakhir
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
+                            <div><strong>Surat:</strong> {lastMem.surah_name}</div>
+                            <div><strong>Ayat:</strong> {lastMem.verse_start} - {lastMem.verse_end}</div>
+                            <div><strong>Status:</strong> {MEM_STATUS_OPTIONS.find(o => o.value === lastMem.status)?.label || lastMem.status}</div>
+                            <div><strong>Nilai:</strong> {lastMem.score}</div>
+                            <div style={{ gridColumn: '1 / -1', color: 'var(--clr-gray-500)', fontSize: '11px' }}>
+                              Tanggal: {new Date(lastMem.created_at || lastMem.date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </div>
+                          </div>
+                          <button 
+                            className="btn-outline" 
+                            style={{ width: '100%', marginTop: '12px', padding: '8px', fontSize: '13px', display: 'flex', justifyContent: 'center', gap: '8px', borderColor: 'var(--clr-primary-400)', color: 'var(--clr-primary-700)' }}
+                            onClick={() => {
+                              const surahData = SURAHS.find(s => s.name_latin === lastMem.surah_name)
+                              setTempSetoran({
+                                surah_id: surahData ? surahData.number : 78,
+                                verse_start: Number(lastMem.verse_end) + 1,
+                                verse_end: '',
+                                status: 'lancar',
+                                score: 90,
+                                note: ''
+                              })
+                            }}
+                          >
+                            Lanjutkan Setoran
+                          </button>
+                        </div>
+                      )}
                       
                       {/* Daftar setoran yang sudah diinput untuk siswa ini */}
                       {mem && mem.length > 0 && (
@@ -515,7 +592,11 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
                         <select 
                           className="form-select" 
                           value={tempSetoran.status} 
-                          onChange={e => setTempSetoran({...tempSetoran, status: e.target.value})}
+                          onChange={e => {
+                            const newStatus = e.target.value
+                            const newScore = getAutoScore(newStatus)
+                            setTempSetoran({...tempSetoran, status: newStatus, score: newScore})
+                          }}
                         >
                           {MEM_STATUS_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>

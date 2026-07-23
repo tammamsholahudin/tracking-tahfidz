@@ -244,11 +244,21 @@ export default function Dashboard() {
 
     // 6. Alerts (Attention warnings based on actual absent records and unconfigured schedules)
     const absentCounts: Record<string, { name: string; count: number; className: string }> = {}
+    
+    // Create an allStudents array to find names
+    const allStudents = [
+      ...localStudents,
+      ...localLessonStudents, // defined above at line 192
+      ...localPrivates
+    ]
+
     localAtts.forEach((a: any) => {
       if (a.status === 'alpa' || a.status === 'izin' || a.status === 'sakit') {
         if (!absentCounts[a.student_id]) {
-          const cls = localClasses.find((c: any) => c.id === a.class_id)
-          absentCounts[a.student_id] = { name: a.student_name, count: 0, className: cls?.name || 'Kelas' }
+          const cls = localClasses.find((c: any) => c.id === a.class_id) || localLessons.find((l: any) => l.id === a.class_id)
+          const std = allStudents.find((s: any) => s.id === a.student_id)
+          const studentName = std?.name || a.student_name || 'Siswa tidak ditemukan'
+          absentCounts[a.student_id] = { name: studentName, count: 0, className: cls?.name || 'Kelas' }
         }
         absentCounts[a.student_id].count++
       }
@@ -844,7 +854,7 @@ export default function Dashboard() {
               <div className={styles.alertList}>
                 {alerts.length === 0 ? (
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-gray-400)', padding: 'var(--space-1) 0' }}>
-                    Semua aktivitas kelas berjalan lancar.
+                    Belum ada siswa yang memerlukan perhatian.
                   </div>
                 ) : (
                   alerts.slice(0, 3).map((a, idx) => (

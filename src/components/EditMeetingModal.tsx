@@ -497,7 +497,19 @@ export default function EditMeetingModal({ meetingId, entityId, entityType = 'se
 
                                     <div className="form-group" style={{ marginBottom: 0 }}>
                                       <label className="form-label" style={{ fontSize: '12px', fontWeight: 600 }}>Status Kelancaran</label>
-                                      <select className="form-select" style={{ padding: '10px' }} value={mem.status} onChange={e => handleMemChange(s.id, mem.uiId, 'status', e.target.value)}>
+                                      <select className="form-select" style={{ padding: '10px' }} value={mem.status} onChange={e => {
+                                        const newStatus = e.target.value
+                                        handleMemChange(s.id, mem.uiId, 'status', newStatus)
+                                        
+                                        let newScore = mem.score
+                                        if (newStatus === 'sangat_lancar') newScore = 95
+                                        else if (newStatus === 'lancar') newScore = 90
+                                        else if (newStatus === 'cukup' || newStatus === 'cukup_lancar') newScore = 85
+                                        else if (newStatus === 'perlu_murojaah') newScore = 80
+                                        else if (newStatus === 'belum_lancar' || newStatus === 'ulangi') newScore = 75
+                                        
+                                        handleMemChange(s.id, mem.uiId, 'score', newScore)
+                                      }}>
                                         <option value="sangat_lancar">Sangat Lancar</option>
                                         <option value="lancar">Lancar</option>
                                         <option value="cukup">Cukup</option>
