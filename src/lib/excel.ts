@@ -134,16 +134,30 @@ export function exportMemorizationExcel(data: any[], classData: any, filename = 
   XLSX.writeFile(wb, filename)
 }
 
-export function exportJournalExcel(meetingsData: any[], _classData: any, filename = 'Jurnal_Pembelajaran.xlsx') {
+export function exportJournalExcel(meetings: any[], students: any[], allAtt: any[], allMem: any[], classData: any, filename = 'Jurnal_Pembelajaran.xlsx') {
   const wb = XLSX.utils.book_new()
   
-  const formattedData = meetingsData.map((m, idx) => {
+  const formattedData = meetings.map((m, idx) => {
+    const mAtt = allAtt.filter(a => a.meeting_id === m.id)
+    const setoranCount = allMem.filter(mem => mem.class_id === classData.id && new Date(mem.created_at || mem.date).toDateString() === new Date(m.date).toDateString()).length
+
     return {
-      'Pertemuan Ke': meetingsData.length - idx,
+      'Pertemuan Ke': meetings.length - idx,
       'Tanggal': new Date(m.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-      'Materi / Catatan': m.summary || m.notes || '-',
-      'Status': m.status || 'Pembelajaran',
-      'Dibuat Pada': new Date(m.created_at).toLocaleString('id-ID')
+      'Materi': 'Tahfidz / Murojaah',
+      'Tujuan Pembelajaran': '',
+      'Metode': '',
+      'Kegiatan Pembelajaran': '',
+      'Evaluasi': '',
+      'Kendala': '',
+      'Catatan Guru': m.summary || '-',
+      'Target Berikutnya': '',
+      'Total Siswa': students.length,
+      'Hadir': mAtt.filter(a => a.status === 'hadir').length,
+      'Izin': mAtt.filter(a => a.status === 'izin').length,
+      'Sakit': mAtt.filter(a => a.status === 'sakit').length,
+      'Alpa': mAtt.filter(a => a.status === 'alpa').length,
+      'Jml Setoran': setoranCount,
     }
   })
 
@@ -152,10 +166,16 @@ export function exportJournalExcel(meetingsData: any[], _classData: any, filenam
   // Set column widths
   ws['!cols'] = [
     { wch: 15 }, // Pertemuan Ke
-    { wch: 25 }, // Tanggal
-    { wch: 50 }, // Catatan
-    { wch: 15 }, // Status
-    { wch: 20 }, // Dibuat
+    { wch: 20 }, // Tanggal
+    { wch: 20 }, // Materi
+    { wch: 30 }, // Tujuan
+    { wch: 20 }, // Metode
+    { wch: 30 }, // Kegiatan
+    { wch: 30 }, // Evaluasi
+    { wch: 30 }, // Kendala
+    { wch: 40 }, // Catatan Guru
+    { wch: 30 }, // Target Berikutnya
+    { wch: 10 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 12 } // Stats
   ]
 
   XLSX.utils.book_append_sheet(wb, ws, 'Jurnal')

@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { getSettings } from '@/store/settingsStore'
 import { useAuthStore } from '@/store/authStore'
+import { getSync } from '@/lib/db'
 
 export function exportAttendancePDF(data: any[], classData: any, filename = 'Laporan_Absensi.pdf', meetingsData: any[] = []) {
   const doc = new jsPDF('landscape')
@@ -269,6 +270,116 @@ export function exportProgressPDF(data: any[], classData: any, filename = 'Lapor
     doc.setFontSize(8)
     doc.text('Tracking Tahfidz MAM! - Halaman ' + String(i) + ' dari ' + String(pageCount), 14, doc.internal.pageSize.height - 10)
   }
+
+  doc.save(filename)
+}
+
+export function exportJournalPDF(meetings: any[], students: any[], allAtt: any[], allMem: any[], classData: any, filename: string) {
+  const doc = new jsPDF()
+  const { institutionName: instName, institutionSubtitle: instSub } = getSettings()
+  const homeroom = getSync('tahfidz_users').find((u: any) => u.id === classData.wali_kelas_id)?.name || 'Wali Kelas'
+  const teacherName = useAuthStore.getState().profile?.name || 'Guru Tahfidz'
+  const academicYear = '2026/2027'
+
+  if (meetings.length === 0) {
+    doc.text("Tidak ada data jurnal", 14, 20)
+    doc.save(filename)
+    return
+  }
+
+  meetings.forEach((m, index) => {
+    if (index > 0) doc.addPage()
+    
+    // Header
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text(instName, 14, 15)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(instSub, 14, 20)
+    doc.setLineWidth(0.5)
+    doc.line(14, 23, doc.internal.pageSize.width - 14, 23)
+
+    // Title
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('JURNAL PEMBELAJARAN TAHFIDZ', doc.internal.pageSize.width / 2, 33, { align: 'center' })
+    
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    
+    // Left col
+    doc.text(`Nama Sekolah : ${instName}`, 14, 45)
+    doc.text(`Tahun Ajaran : ${academicYear}`, 14, 50)
+    doc.text(`Semester     : Semua`, 14, 55)
+    doc.text(`Kelas        : ${classData.name}`, 14, 60)
+    doc.text(`Guru         : ${teacherName}`, 14, 65)
+    
+    // Right col
+    const dateStr = new Date(m.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    doc.text(`Hari/Tanggal : ${dateStr}`, 110, 45)
+    doc.text(`Jam          : ..........................`, 110, 50)
+    doc.text(`Materi       : Tahfidz / Murojaah`, 110, 55)
+    doc.text(`Pertemuan Ke : ${meetings.length - index}`, 110, 60)
+
+    // Jurnal Fields
+    let startY = 75
+    doc.setFont('helvetica', 'bold')
+    doc.text('I. RENCANA & PELAKSANAAN PEMBELAJARAN', 14, startY)
+    doc.setFont('helvetica', 'normal')
+    
+    const lines = [
+      'Tujuan Pembelajaran : ....................................................................................................................',
+      'Metode              : Talaqqi / Murojaah / Tasmi / .......................................................................',
+      'Kegiatan            : ....................................................................................................................',
+      'Evaluasi            : ....................................................................................................................',
+      'Kendala             : ....................................................................................................................',
+      'Catatan Guru        : ' + (m.summary || '....................................................................................................................'),
+      'Target Berikutnya   : ....................................................................................................................'
+    ]
+    
+    startY += 8
+    lines.forEach(l => {
+      doc.text(l, 14, startY)
+      startY += 8
+    })
+
+    // Rekapitulasi
+    startY += 5
+    doc.setFont('helvetica', 'bold')
+    doc.text('II. REKAPITULASI PERTEMUAN', 14, startY)
+    doc.setFont('helvetica', 'normal')
+    
+    const mAtt = allAtt.filter(a => a.meeting_id === m.id)
+    const hadir = mAtt.filter(a => a.status === 'hadir').length
+    const izin = mAtt.filter(a => a.status === 'izin').length
+    const sakit = mAtt.filter(a => a.status === 'sakit').length
+    const alpa = mAtt.filter(a => a.status === 'alpa').length
+    const setoranCount = allMem.filter(mem => mem.class_id === classData.id && new Date(mem.created_at || mem.date).toDateString() === new Date(m.date).toDateString()).length
+
+    startY += 8
+    doc.text(`Total Siswa   : ${students.length}`, 14, startY)
+    doc.text(`Hadir : ${hadir}`, 60, startY)
+    doc.text(`Izin : ${izin}`, 80, startY)
+    doc.text(`Sakit : ${sakit}`, 100, startY)
+    doc.text(`Alpa : ${alpa}`, 120, startY)
+    doc.text(`Jumlah Setoran: ${setoranCount}`, 140, startY)
+
+    // Signatures
+    let finalY = startY + 25
+    doc.text('Mengetahui,', 40, finalY)
+    doc.text('Wali Kelas', 40, finalY + 5)
+    doc.text('ttd', 40, finalY + 20)
+    doc.text(homeroom, 35, finalY + 30)
+
+    doc.text('Guru Tahfidz', doc.internal.pageSize.width - 70, finalY + 5)
+    doc.text('ttd', doc.internal.pageSize.width - 65, finalY + 20)
+    doc.text(teacherName, doc.internal.pageSize.width - 75, finalY + 30)
+
+    // Footer
+    doc.setFontSize(8)
+    doc.text(`Tracking Tahfidz MAM! - Dicetak: ${new Date().toLocaleDateString('id-ID')}`, 14, doc.internal.pageSize.height - 10)
+  })
 
   doc.save(filename)
 }

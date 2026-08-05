@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.0 (5 Agustus 2026)
+- **Feat**: Redesign UI untuk alur kerja guru, menambahkan menu Arsip Pertemuan.
+- **Feat**: Tab Laporan kini hanya memuat tombol Ekspor.
+- **Feat**: Menambahkan ekspor Laporan Jurnal Pembelajaran (Excel dan multi-page PDF).
+- **Feat**: Menstandarkan penamaan file laporan ekspor (`Laporan - Jenis - Kelas - TA - Tanggal`).
+- **Refactor**: Menghilangkan tab Absensi dan Setoran Hafalan yang redundan dari Dashboard Kelas utama.
+
 Semua catatan perubahan dari versi ke versi.
 
 ## Version 1.1 (5 Agustus 2026)

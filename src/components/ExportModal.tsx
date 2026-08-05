@@ -5,7 +5,7 @@ import styles from './ExportModal.module.css'
 interface ExportModalProps {
   onClose: () => void
   onExport: (format: 'excel' | 'pdf', filter: any) => void
-  type: 'absensi' | 'hafalan'
+  type: string
 }
 
 export default function ExportModal({ onClose, onExport, type }: ExportModalProps) {
@@ -22,7 +22,7 @@ export default function ExportModal({ onClose, onExport, type }: ExportModalProp
       <div className={styles.modal}>
         <div className={styles.header}>
           <h2 className={styles.title}>
-            <FileDown size={20} /> Export Laporan {type === 'absensi' ? 'Absensi' : 'Hafalan'}
+            <FileDown size={20} /> Export Laporan {type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
           </h2>
           <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
         </div>

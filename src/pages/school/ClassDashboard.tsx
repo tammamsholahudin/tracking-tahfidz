@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import {
-  ArrowLeft, Users, Target, TrendingUp, Calendar,
-  ClipboardList, BookOpen, BarChart3, FileText, Settings,
-  CheckCircle2, Loader2, Save, Building2, Trash2, Info, Link2, Copy, ExternalLink
+  BarChart3, Users, Target, Calendar, CheckCircle2,
+  TrendingUp, FileText, Settings, Copy, ExternalLink, Trash2, Archive,
+  ArrowLeft, Loader2, Save, Building2, Info, Link2, ClipboardList, BookOpen
 } from 'lucide-react'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useAuthStore } from '@/store/authStore'
 import { getSync, fetchBackground, mutateData } from '@/lib/db'
-import AttendancePage from './Attendance'
-import MemorizationPage from './Memorization'
 import ClassProgressPage from './ClassProgress'
-import ClassJournalPage from './ClassJournalPage'
+import ArchiveMeetingPage from './ArchiveMeetingPage'
 import PaymentPage from './PaymentPage'
 import { exportAttendanceExcel, exportMemorizationExcel } from '@/lib/excel'
 import { exportAttendancePDF, exportProgressPDF } from '@/lib/pdf'
@@ -39,7 +37,7 @@ export default function ClassDashboard() {
   const { institutionName, institutionSubtitle } = useSettingsStore()
   const { activeWorkspaceId } = useAuthStore()
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [showExport, setShowExport] = useState<'absensi' | 'hafalan' | null>(null)
+  const [showExport, setShowExport] = useState<string | null>(null)
   const [showImport, setShowImport] = useState(false)
   const [showAddStudent, setShowAddStudent] = useState(false)
   const [showEditStudent, setShowEditStudent] = useState<any>(null)
@@ -61,8 +59,7 @@ export default function ClassDashboard() {
       { id: 'target',    label: 'Target Hafalan', icon: <Target size={16} /> },
       { id: 'jadwal',    label: 'Jadwal',    icon: <Calendar size={16} /> },
       { id: 'pertemuan', label: 'Pertemuan', icon: <CheckCircle2 size={16} /> },
-      { id: 'absensi',   label: 'Absensi',   icon: <ClipboardList size={16} /> },
-      { id: 'setoran',   label: 'Setoran Hafalan', icon: <BookOpen size={16} /> },
+      { id: 'arsip_pertemuan', label: 'Arsip Pertemuan', icon: <Archive size={16} /> },
       { id: 'progress',  label: 'Progress',  icon: <TrendingUp size={16} /> },
       { id: 'laporan',   label: 'Laporan',   icon: <FileText size={16} /> }
     ]
@@ -519,22 +516,9 @@ export default function ClassDashboard() {
 
         {/* ── JADWAL TAB ── */}
         {activeTab === 'jadwal' && <ScheduleIndex entityId={cls.id} entityType={entityType} entityName={cls.name} />}
-
-        {/* ── PERTEMUAN TAB ── */}
         {activeTab === 'pertemuan' && <MeetingWorkspace entityId={cls.id} entityType={entityType} entityName={cls.name} />}
-
-        {/* ── ABSENSI TAB ── */}
-        {activeTab === 'absensi' && <AttendancePage entityId={cls.id} entityType={entityType} entityData={cls} />}
-        
-        {/* ── SETORAN TAB ── */}
-        {activeTab === 'setoran' && <MemorizationPage entityId={cls.id} entityType={entityType} entityData={cls} />}
-        
-        {/* ── PROGRESS TAB ── */}
+        {activeTab === 'arsip_pertemuan' && <ArchiveMeetingPage entityId={cls.id} entityType={entityType} />}
         {activeTab === 'progress' && <ClassProgressPage entityId={cls.id} entityType={entityType} entityData={cls} />}
-        
-        {/* ── LAPORAN / JURNAL TAB ── */}
-        {activeTab === 'laporan' && <ClassJournalPage entityId={cls.id} entityType={entityType} entityData={cls} />}
-
         {/* ── PEMBAYARAN TAB (Les/Privat only) ── */}
         {activeTab === 'pembayaran' && (entityType === 'les' || entityType === 'privat') && (
           <PaymentPage entityId={cls.id} entityType={entityType} entityData={cls} />
@@ -754,6 +738,42 @@ export default function ClassDashboard() {
                     <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-gray-500)' }}>Pencapaian target setoran hafalan</div>
                   </div>
                 </button>
+
+                <button 
+                  className={styles.btnOutline} 
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-gray-200)', cursor: 'pointer', background: 'white' }}
+                  onClick={() => setShowExport('jurnal_pembelajaran')}
+                >
+                  <FileText size={20} color="var(--clr-primary-600)" />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 'bold' }}>Laporan Jurnal Pembelajaran</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-gray-500)' }}>Rekap jurnal aktivitas guru dan siswa</div>
+                  </div>
+                </button>
+
+                <button 
+                  className={styles.btnOutline} 
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-gray-200)', cursor: 'pointer', background: 'white' }}
+                  onClick={() => setShowExport('rekap_semester')}
+                >
+                  <Archive size={20} color="var(--clr-primary-600)" />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 'bold' }}>Rekap Semester</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-gray-500)' }}>Rekapitulasi akhir semester (Excel/PDF)</div>
+                  </div>
+                </button>
+
+                <button 
+                  className={styles.btnOutline} 
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--clr-gray-200)', cursor: 'pointer', background: 'white' }}
+                  onClick={() => setShowExport('rekap_tahunan')}
+                >
+                  <Archive size={20} color="var(--clr-primary-600)" />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 'bold' }}>Rekap Tahunan</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-gray-500)' }}>Rekapitulasi akhir tahun (Excel/PDF)</div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -940,62 +960,88 @@ export default function ClassDashboard() {
             setShowExport(null)
             toast.success(`Memproses export ${showExport} dalam format ${format.toUpperCase()}...`)
             
-            setTimeout(() => {
-              if (showExport === 'hafalan') {
-                const allMem = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]')
-                const data = students.map((s, index) => {
-                  const activeTargets = targets.filter(t => t.semester === filter.semester)
-                  const prog = calculateStudentProgress(s.id, activeTargets, allMem)
-                  const overall = calculateOverallProgress(s.id, allMem)
-                  return {
-                    No: index + 1,
-                    Nama: s.name,
-                    'Target Hafalan Kelas': activeTargets.map(t => t.surah).join(', ') || '-',
-                    'Total Target Surat': prog.suratTarget,
-                    'Surat Selesai': prog.suratSelesai,
-                    'Persentase Progress': `${prog.pct}%`,
-                    'Status Progress': getStatusLabel(prog.status),
-                    'Juz Tertinggi': overall.juzTertinggi,
-                    'Total Hafalan Keseluruhan': `${overall.totalSurat} Surat`,
-                    'Surat Terakhir': overall.suratTerakhir,
-                    'Jumlah Setoran': overall.jumlahSetoran,
-                    'Nilai Rata-rata': overall.nilaiRataRata,
-                    '_history': overall.riwayat
-                  }
-                })
+              setTimeout(() => {
+                const dStr = new Date().toISOString().split('T')[0]
+                const safeTA = filter.tahunAjaran ? filter.tahunAjaran.replace('/', '-') : '2026-2027'
                 
-                if (format === 'excel') exportMemorizationExcel(data, cls, `Laporan_Hafalan.xlsx`)
-                if (format === 'pdf') exportProgressPDF(data, cls, `Laporan_Hafalan.pdf`)
-              } else {
-                const allMeetings = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]').filter((m: any) => m.class_id === classId)
-                const allAtt = JSON.parse(localStorage.getItem('tahfidz_attendance_records') || '[]').filter((a: any) => a.class_id === classId)
-                
-                const data = students.map((s, index) => {
-                  const row: any = { No: index + 1, Nama: s.name }
-                  let h = 0, i = 0, sk = 0, a = 0
-                  
-                  allMeetings.forEach((m: any, mIdx: number) => {
-                    const rec = allAtt.find((att: any) => att.meeting_id === m.id && att.student_id === s.id)
-                    const status = rec ? rec.status : '-'
-                    const dateStr = new Date(m.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' })
-                    row[`P${mIdx + 1}\n(${dateStr})`] = status
-                    if (status === 'hadir') h++
-                    if (status === 'izin') i++
-                    if (status === 'sakit') sk++
-                    if (status === 'alpa') a++
+                if (showExport === 'hafalan' || showExport === 'rekap_semester' || showExport === 'rekap_tahunan') {
+                  const allMem = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]')
+                  const data = students.map((s, index) => {
+                    const activeTargets = targets.filter(t => t.semester === filter.semester)
+                    const prog = calculateStudentProgress(s.id, activeTargets, allMem)
+                    const overall = calculateOverallProgress(s.id, allMem)
+                    return {
+                      No: index + 1,
+                      Nama: s.name,
+                      'Target Hafalan Kelas': activeTargets.map(t => t.surah).join(', ') || '-',
+                      'Total Target Surat': prog.suratTarget,
+                      'Surat Selesai': prog.suratSelesai,
+                      'Persentase Progress': `${prog.pct}%`,
+                      'Status Progress': getStatusLabel(prog.status),
+                      'Juz Tertinggi': overall.juzTertinggi,
+                      'Total Hafalan Keseluruhan': `${overall.totalSurat} Surat`,
+                      'Surat Terakhir': overall.suratTerakhir,
+                      'Jumlah Setoran': overall.jumlahSetoran,
+                      'Nilai Rata-rata': overall.nilaiRataRata,
+                      '_history': overall.riwayat
+                    }
                   })
                   
-                  row['Hadir'] = h
-                  row['Izin'] = i
-                  row['Sakit'] = sk
-                  row['Alpha'] = a
-                  row['Persentase'] = allMeetings.length > 0 ? Math.round((h / allMeetings.length) * 100) + '%' : '0%'
-                  return row
-                })
+                  let jenis = 'Progress Hafalan'
+                  if (showExport === 'rekap_semester') jenis = 'Rekap Semester'
+                  if (showExport === 'rekap_tahunan') jenis = 'Rekap Tahunan'
+                  const fname = `Laporan - ${jenis} - ${cls.name} - TA ${safeTA} - ${dStr}`
+                  
+                  if (format === 'excel') exportMemorizationExcel(data, cls, `${fname}.xlsx`)
+                  if (format === 'pdf') exportProgressPDF(data, cls, `${fname}.pdf`)
+                  
+                } else if (showExport === 'jurnal_pembelajaran') {
+                  const allMeetings = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]').filter((m: any) => m.class_id === classId)
+                  allMeetings.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  const allAtt = JSON.parse(localStorage.getItem('tahfidz_attendance_records') || '[]').filter((a: any) => a.class_id === classId)
+                  const allMem = JSON.parse(localStorage.getItem('tahfidz_memorization_records') || '[]').filter((m: any) => m.class_id === classId)
+                  
+                  const fname = `Laporan - Jurnal Pembelajaran - ${cls.name} - TA ${safeTA} - ${dStr}`
+                  
+                  import('@/lib/excel').then(m => {
+                    if (format === 'excel') m.exportJournalExcel(allMeetings, students, allAtt, allMem, cls, `${fname}.xlsx`)
+                  })
+                  import('@/lib/pdf').then(m => {
+                    // @ts-ignore
+                    if (format === 'pdf') m.exportJournalPDF(allMeetings, students, allAtt, allMem, cls, `${fname}.pdf`)
+                  })
+                  
+                } else {
+                  const allMeetings = JSON.parse(localStorage.getItem('tahfidz_meetings') || '[]').filter((m: any) => m.class_id === classId)
+                  const allAtt = JSON.parse(localStorage.getItem('tahfidz_attendance_records') || '[]').filter((a: any) => a.class_id === classId)
+                  
+                  const data = students.map((s, index) => {
+                    const row: any = { No: index + 1, Nama: s.name }
+                    let h = 0, i = 0, sk = 0, a = 0
+                    
+                    allMeetings.forEach((m: any, mIdx: number) => {
+                      const rec = allAtt.find((att: any) => att.meeting_id === m.id && att.student_id === s.id)
+                      const status = rec ? rec.status : '-'
+                      const dateStr = new Date(m.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                      row[`P${mIdx + 1}\n(${dateStr})`] = status
+                      if (status === 'hadir') h++
+                      if (status === 'izin') i++
+                      if (status === 'sakit') sk++
+                      if (status === 'alpa') a++
+                    })
+                    
+                    row['Hadir'] = h
+                    row['Izin'] = i
+                    row['Sakit'] = sk
+                    row['Alpha'] = a
+                    row['Persentase'] = allMeetings.length > 0 ? Math.round((h / allMeetings.length) * 100) + '%' : '0%'
+                    return row
+                  })
 
-                if (format === 'excel') exportAttendanceExcel(data, cls, `Laporan_Absensi.xlsx`)
-                if (format === 'pdf') exportAttendancePDF(data, cls, `Laporan_Absensi.pdf`)
-              }
+                  const fname = `Laporan - Absensi - ${cls.name} - TA ${safeTA} - ${dStr}`
+                  if (format === 'excel') exportAttendanceExcel(data, cls, `${fname}.xlsx`)
+                  if (format === 'pdf') exportAttendancePDF(data, cls, `${fname}.pdf`)
+                }
               toast.success('Download selesai!')
             }, 1000)
           }}
