@@ -76,7 +76,7 @@ export default function PortalManagement() {
   return (
     <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid var(--clr-gray-200)' }}>
       <div style={{ padding: '24px', borderBottom: '1px solid var(--clr-gray-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
+        <div style={{ flex: 1, paddingRight: '16px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--clr-gray-900)' }}>Manajemen Akses Portal</h2>
           <p style={{ fontSize: '14px', color: 'var(--clr-gray-500)', marginTop: '4px' }}>
             Buat tautan aman untuk memberikan akses Read-Only kepada Wali Kelas & Kepala Sekolah tanpa perlu login akun.
@@ -84,7 +84,8 @@ export default function PortalManagement() {
         </div>
         <button 
           onClick={() => setShowModal(true)}
-          style={{ background: 'var(--clr-primary)', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+          className="btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}
         >
           <Plus size={18} />
           Buat Tautan
