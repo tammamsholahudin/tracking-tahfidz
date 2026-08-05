@@ -30,7 +30,9 @@ export default function AttendancePage({ entityId, entityType = 'sekolah', entit
 
   const loadData = () => {
     const allMeetings = getSync('tahfidz_meetings')
-    const classMeetings = allMeetings.filter((m: any) => m.class_id === entityId).reverse()
+    const classMeetings = allMeetings
+      .filter((m: any) => m.class_id === entityId)
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     
     const allAtt = getSync('tahfidz_attendance_records')
     const classAtt = allAtt.filter((a: any) => a.class_id === entityId)

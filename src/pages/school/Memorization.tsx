@@ -38,7 +38,7 @@ export default function MemorizationPage({ entityId, entityType = 'sekolah' }: M
           date: m.date || m.created_at
         }
       })
-      .reverse() // newest first
+      .sort((a: any, b: any) => new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime())
       
     setMemorizations(classMem)
   }
