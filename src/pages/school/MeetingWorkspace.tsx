@@ -7,7 +7,13 @@ import { getSync, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import styles from './MeetingWorkspace.module.css'
 
-interface MeetingWorkspaceProps { entityId: string, entityType?: string, entityName?: string }
+interface MeetingWorkspaceProps { 
+  entityId: string
+  entityType?: string
+  entityName?: string
+  editMeetingId?: string | null
+  onCloseEdit?: () => void
+}
 type AttStatus = 'hadir' | 'izin' | 'sakit' | 'alpa'
 
 const MEM_STATUS_OPTIONS = [
@@ -19,7 +25,8 @@ const MEM_STATUS_OPTIONS = [
   { value: 'belum_lancar',   label: 'Belum Lancar' },
 ]
 
-export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: MeetingWorkspaceProps) {
+export default function MeetingWorkspace({ entityId, entityType = 'sekolah', editMeetingId, onCloseEdit }: MeetingWorkspaceProps) {
+
   const { activeWorkspaceId } = useAuthStore()
   const [activeTab, setActiveTab] = useState<'absensi' | 'setoran' | 'ringkasan'>('absensi')
   const [students, setStudents] = useState<any[]>([])
@@ -66,21 +73,46 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
     const allMems = getSync('tahfidz_memorization_records')
     setHistoryMems(allMems)
 
-    const draftStr = localStorage.getItem(draftKey)
-    if (draftStr) {
-      try {
-        const draftData = JSON.parse(draftStr)
-        setDraftTimestamp(draftData.timestamp ?? null)
-      } catch { /* ignore */ }
-      setShowDraftDialog(true)
-    } else {
-      // Initialize default
+    if (editMeetingId) {
+      // LOAD EXISTING FINALIZED MEETING
+      const meetings = getSync('tahfidz_meetings')
+      const meeting = meetings.find((m: any) => m.id === editMeetingId)
+      
+      const allAtts = getSync('tahfidz_attendance_records').filter((a: any) => a.meeting_id === editMeetingId)
       const initAtt: Record<string, AttStatus> = {}
-      activeStudents.forEach((s: any) => { initAtt[s.id] = 'hadir' })
+      allAtts.forEach((a: any) => { initAtt[a.student_id] = a.status })
+      
+      // If some students were added later, default to 'hadir'
+      activeStudents.forEach((s: any) => { if (!initAtt[s.id]) initAtt[s.id] = 'hadir' })
+
+      const allMemsLocal = getSync('tahfidz_memorization_records').filter((m: any) => m.meeting_id === editMeetingId)
+      const initMems: Record<string, any[]> = {}
+      allMemsLocal.forEach((m: any) => {
+        if (!initMems[m.student_id]) initMems[m.student_id] = []
+        initMems[m.student_id].push({ ...m, tempId: Date.now() + Math.random() })
+      })
+
+      setMeetingNotes(meeting?.summary || '')
       setAttendance(initAtt)
+      setMemorizations(initMems)
       isInitialized.current = true
+    } else {
+      const draftStr = localStorage.getItem(draftKey)
+      if (draftStr) {
+        try {
+          const draftData = JSON.parse(draftStr)
+          setDraftTimestamp(draftData.timestamp ?? null)
+        } catch { /* ignore */ }
+        setShowDraftDialog(true)
+      } else {
+        // Initialize default
+        const initAtt: Record<string, AttStatus> = {}
+        activeStudents.forEach((s: any) => { initAtt[s.id] = 'hadir' })
+        setAttendance(initAtt)
+        isInitialized.current = true
+      }
     }
-  }, [entityId, entityType])
+  }, [entityId, entityType, editMeetingId])
 
   // Auto Save
   useEffect(() => {
@@ -216,91 +248,131 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah' }: M
   }
 
   const handleFinishMeeting = async () => {
-    if (!confirm('Akhiri pertemuan dan simpan semua data secara permanen?')) return
+    if (!confirm(editMeetingId ? 'Simpan pembaruan pada pertemuan ini?' : 'Akhiri pertemuan dan simpan semua data secara permanen?')) return
 
-    const meetingId = `mtg-${Date.now()}`
-    const meetingDate = new Date().toISOString()
+    const isEdit = !!editMeetingId
+    const meetingId = isEdit ? editMeetingId : `mtg-${Date.now()}`
     
-    // Save Meeting
-    const newMeeting = {
+    let meetingDate = new Date().toISOString()
+    if (isEdit) {
+      const orig = getSync('tahfidz_meetings').find((m:any) => m.id === editMeetingId)
+      if (orig?.date) meetingDate = orig.date
+    }
+    
+    const newMeeting: any = {
       id: meetingId,
       class_id: entityId,
       guru_id: activeWorkspaceId,
       date: meetingDate,
       summary: meetingNotes,
-      status: 'Pembelajaran',
-      created_at: meetingDate
     }
-    const meetRes = await mutateData('meetings', 'INSERT', newMeeting, 'tahfidz_meetings')
+    
+    if (isEdit) {
+      const orig = getSync('tahfidz_meetings').find((m:any) => m.id === editMeetingId)
+      newMeeting.status = orig?.status || 'Finalisasi'
+      newMeeting.created_at = orig?.created_at || meetingDate
+    } else {
+      newMeeting.status = 'Finalisasi'
+      newMeeting.created_at = meetingDate
+    }
+
+    const meetRes = await mutateData('meetings', isEdit ? 'UPDATE' : 'INSERT', newMeeting, 'tahfidz_meetings')
     if (!meetRes.success) {
       toast.error(`Gagal menyimpan pertemuan: ${meetRes.error?.message || 'Error Database'}`)
       return
     }
 
-    // Save Attendance
-    const newAttRecords = students.map(s => ({
-      id: `att-${Date.now()}-${s.id}`,
-      meeting_id: meetingId,
-      class_id: entityId,
-      guru_id: activeWorkspaceId,
-      student_id: s.id,
-      status: attendance[s.id] || 'alpa',
-      created_at: meetingDate
-    }))
+    const newAttRecords = students.map(s => {
+      let existingId = `att-${Date.now()}-${s.id}`
+      if (isEdit) {
+        const oldAtt = getSync('tahfidz_attendance_records').find((a:any) => a.meeting_id === meetingId && a.student_id === s.id)
+        if (oldAtt) existingId = oldAtt.id
+      }
+      return {
+        id: existingId,
+        meeting_id: meetingId,
+        class_id: entityId,
+        guru_id: activeWorkspaceId,
+        student_id: s.id,
+        status: attendance[s.id] || 'alpa',
+        created_at: meetingDate
+      }
+    })
     
     if (newAttRecords.length > 0) {
+      if (isEdit) {
+         const oldAtt = getSync('tahfidz_attendance_records').filter((a:any) => a.meeting_id === meetingId)
+         for (const old of oldAtt) {
+            await mutateData('attendance_records', 'DELETE', { id: old.id }, 'tahfidz_attendance_records')
+         }
+      }
       const attRes = await mutateData('attendance_records', 'INSERT', newAttRecords, 'tahfidz_attendance_records')
-      if (!attRes.success) {
+      if (attRes && !attRes.success) {
         toast.error(`Gagal menyimpan absensi: ${attRes.error?.message || 'Error Database'}`)
         return
       }
     }
 
-    // Save Memorizations
     const newMemRecords: any[] = []
     Object.keys(memorizations).forEach(studentId => {
       const mems = memorizations[studentId]
       if (Array.isArray(mems)) {
         mems.forEach((m, idx) => {
           newMemRecords.push({
-            id: `mem-${Date.now()}-${studentId}-${idx}`,
+            id: m.id && isEdit ? m.id : `mem-${Date.now()}-${studentId}-${idx}`,
             meeting_id: meetingId,
             class_id: entityId,
             guru_id: activeWorkspaceId,
             student_id: studentId,
-            date: meetingDate, // Added date field
-            created_at: meetingDate,
+            date: meetingDate, 
+            created_at: m.created_at || meetingDate,
             surah_name: m.surah_name,
-            verse_start: String(m.verse_start), // Changed to TEXT
-            verse_end: String(m.verse_end), // Changed to TEXT
+            verse_start: String(m.verse_start),
+            verse_end: String(m.verse_end),
             score: Number(m.score),
             status: m.status,
             note: m.note || '',
-            surat_selesai: m.surat_selesai || false // Added surat_selesai
-            // Removed surah_id and juz because they don't exist in Supabase schema
+            surat_selesai: m.surat_selesai || false
           })
         })
       }
     })
-    
+
+    if (isEdit) {
+      const oldMems = getSync('tahfidz_memorization_records').filter((m:any) => m.meeting_id === meetingId)
+      for (const old of oldMems) {
+         await mutateData('memorization_records', 'DELETE', { id: old.id }, 'tahfidz_memorization_records')
+      }
+    }
+
     if (newMemRecords.length > 0) {
       const memRes = await mutateData('memorization_records', 'INSERT', newMemRecords, 'tahfidz_memorization_records')
-      if (!memRes.success) {
+      if (memRes && !memRes.success) {
         toast.error(`Gagal menyimpan setoran hafalan: ${memRes.error?.message || 'Error Database'}`)
         return
       }
     }
 
-    localStorage.removeItem(draftKey) // Clean up draft
-    toast.success('Pertemuan Selesai! Data berhasil disimpan.', { icon: '✅' })
+    if (isEdit) {
+      import('@/lib/trash').then(({ logAudit }) => {
+         const guruName = useAuthStore.getState().profile?.name || 'Guru'
+         const dateStr = new Date(meetingDate).toLocaleDateString('id-ID')
+         logAudit(`Pengguna ${guruName} mengubah Pertemuan ${dateStr} pada ${new Date().toLocaleTimeString('id-ID')}`, guruName, activeWorkspaceId || '')
+      })
+    }
+
+    localStorage.removeItem(draftKey)
+    setDraftTimestamp(null)
     
-    // Reset to start
-    setMeetingNotes('')
-    setMemorizations({})
-    const initAtt: Record<string, AttStatus> = {}
-    students.forEach((s: any) => { initAtt[s.id] = 'hadir' })
-    setAttendance(initAtt)
-    setActiveTab('absensi')
+    toast.success(isEdit ? 'Pembaruan pertemuan berhasil disimpan!' : 'Pertemuan selesai & difinalisasi!')
+    
+    if (onCloseEdit) {
+      onCloseEdit()
+    } else {
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
+    }
   }
 
   const setoranStudents = showAllSetoran 

@@ -44,6 +44,7 @@ export default function ClassDashboard() {
   const [showSetJadwal, setShowSetJadwal] = useState(false)
   const [showAddMeeting, setShowAddMeeting] = useState(false)
   const [sortMode, setSortMode] = useState<string>('default')
+  const [editMeetingId, setEditMeetingId] = useState<string | null>(null)
   
   const [cls, setCls] = useState<any>(null)
   const [students, setStudents] = useState<any[]>([])
@@ -516,8 +517,28 @@ export default function ClassDashboard() {
 
         {/* ── JADWAL TAB ── */}
         {activeTab === 'jadwal' && <ScheduleIndex entityId={cls.id} entityType={entityType} entityName={cls.name} />}
-        {activeTab === 'pertemuan' && <MeetingWorkspace entityId={cls.id} entityType={entityType} entityName={cls.name} />}
-        {activeTab === 'arsip_pertemuan' && <ArchiveMeetingPage entityId={cls.id} entityType={entityType} />}
+        {/* WORKSPACE PERTEMUAN (DRAFT & EDIT) */}
+        {activeTab === 'pertemuan' && (
+          <MeetingWorkspace 
+            entityId={cls.id} 
+            entityType={entityType} 
+            entityName={cls.name} 
+            editMeetingId={editMeetingId}
+            onCloseEdit={() => setEditMeetingId(null)}
+          />
+        )}
+
+        {/* ARSIP PERTEMUAN */}
+        {activeTab === 'arsip_pertemuan' && (
+          <ArchiveMeetingPage 
+            entityId={cls.id} 
+            entityType={entityType} 
+            onEditMeeting={(meetingId) => {
+              setEditMeetingId(meetingId)
+              setActiveTab('pertemuan')
+            }}
+          />
+        )}
         {activeTab === 'progress' && <ClassProgressPage entityId={cls.id} entityType={entityType} entityData={cls} />}
         {/* ── PEMBAYARAN TAB (Les/Privat only) ── */}
         {activeTab === 'pembayaran' && (entityType === 'les' || entityType === 'privat') && (

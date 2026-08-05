@@ -100,10 +100,31 @@
   line-height: 1;
 }
 
-/* Clock */
 .sidebarClock {
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid rgba(255,255,255,0.06);
+  transition: all var(--transition-normal);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
+}
+
+.clockCollapsedContainer {
+  padding: var(--space-4) 0;
+}
+
+.clockExpandedWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.clockCollapsedWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .clockTime {
@@ -117,7 +138,28 @@
 .clockDate {
   font-size: var(--text-xs);
   color: rgba(255,255,255,0.55);
-  margin-top: 2px;
+  margin-top: 4px;
+}
+
+.clockTimeCollapsed {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--clr-white);
+  letter-spacing: 1px;
+  animation: fadeSlide 0.5s ease-out;
+}
+
+.clockDateCollapsed {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.55);
+  margin-top: 4px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Nav */

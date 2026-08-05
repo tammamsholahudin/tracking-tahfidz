@@ -43,10 +43,15 @@ export default function AppLayout() {
       const newVal = !isCollapsed
       setIsCollapsed(newVal)
       localStorage.setItem('tahfidz_sidebar_collapsed', String(newVal))
-    } else { // Tablet/Mobile
-      setSidebarOpen(true)
+    } else {
+      setSidebarOpen(!sidebarOpen)
     }
   }
+
+  // Clock formatters for Collapsed mode
+  const jamMenit = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const hariPendek = now.toLocaleDateString('id-ID', { weekday: 'short' }).toUpperCase()
+  const tglBulan = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }).toUpperCase()
 
   const isAdmin = profile?.role === 'admin'
   const isGuru = profile?.role === 'guru'
@@ -164,9 +169,21 @@ export default function AppLayout() {
         </div>
 
         {/* Clock on sidebar */}
-        <div className={styles.sidebarClock}>
-          <div className={styles.clockTime}>{formatWaktu(now)}</div>
-          <div className={styles.clockDate}>{formatTanggal(now)}</div>
+        <div className={`${styles.sidebarClock} ${isCollapsed ? styles.clockCollapsedContainer : ''}`}>
+          {isCollapsed ? (
+            <div className={styles.clockCollapsedWrapper}>
+              <div key={jamMenit} className={styles.clockTimeCollapsed}>{jamMenit}</div>
+              <div className={styles.clockDateCollapsed}>
+                <div>{hariPendek}</div>
+                <div>{tglBulan}</div>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.clockExpandedWrapper}>
+              <div className={styles.clockTime}>{formatWaktu(now)}</div>
+              <div className={styles.clockDate}>{formatTanggal(now)}</div>
+            </div>
+          )}
         </div>
 
         <NavLinks />

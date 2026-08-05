@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronUp, FileText, CheckCircle2, ClipboardList, BookOpen } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, CheckCircle2, ClipboardList, BookOpen, Edit2 } from 'lucide-react'
 import { getSync } from '@/lib/db'
 
-export default function ArchiveMeetingPage({ entityId, entityType: _entityType }: { entityId: string, entityType: string }) {
+export default function ArchiveMeetingPage({ entityId, entityType: _entityType, onEditMeeting }: { entityId: string, entityType: string, onEditMeeting?: (meetingId: string) => void }) {
   const [meetings, setMeetings] = useState<any[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'absensi' | 'setoran' | 'jurnal'>('overview')
@@ -145,6 +145,32 @@ export default function ArchiveMeetingPage({ entityId, entityType: _entityType }
                         
                         {/* 1. OVERVIEW */}
                         {activeSubTab === 'overview' && (
+                          <div style={{ padding: '24px' }}>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--clr-gray-700)', margin: 0 }}>
+                              Ringkasan Pertemuan
+                            </h4>
+                            {onEditMeeting && (
+                              <button 
+                                onClick={() => {
+                                  if (confirm('Anda akan membuka kembali pertemuan yang sudah difinalisasi. Seluruh perubahan pada mode edit ini akan dicatat dalam riwayat audit. Lanjutkan?')) {
+                                    onEditMeeting(m.id)
+                                  }
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '6px',
+                                  padding: '8px 16px', borderRadius: '8px',
+                                  border: '1px solid var(--clr-primary-200)',
+                                  background: 'var(--clr-primary-50)', color: 'var(--clr-primary-700)',
+                                  fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+                                }}
+                              >
+                                <Edit2 size={16} /> Edit Pertemuan
+                              </button>
+                            )}
+                          </div>
+
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                             <div style={{ background: 'var(--clr-gray-50)', padding: '12px', borderRadius: '8px' }}>
                               <div style={{ fontSize: '12px', color: 'var(--clr-gray-500)', marginBottom: '4px' }}>Hari, Tanggal</div>
@@ -166,6 +192,7 @@ export default function ArchiveMeetingPage({ entityId, entityType: _entityType }
                             <div style={{ background: 'var(--clr-gray-50)', padding: '12px', borderRadius: '8px' }}>
                               <div style={{ fontSize: '12px', color: 'var(--clr-gray-500)', marginBottom: '4px' }}>Catatan Singkat</div>
                               <div style={{ fontWeight: 500, fontSize: '14px' }}>{m.summary || '-'}</div>
+                            </div>
                             </div>
                           </div>
                         )}

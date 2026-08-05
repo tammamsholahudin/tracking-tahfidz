@@ -67,9 +67,29 @@ export function restoreFromTrash(trashId: string) {
 
   // Restore main item
   mutateData(trashItem.original_table, 'INSERT', trashItem.data, getCacheKeyForTable(trashItem.original_table))
-
-  // Delete from audit_logs
   mutateData('audit_logs', 'DELETE', { id: trashId }, 'tahfidz_audit_logs')
+
+  // Cascade Restore for Meetings
+  if (trashItem.original_table === 'meetings') {
+    const meetingId = trashItem.data.id
+    
+    // Find all children in trash that belong to this meeting
+    const childrenToRestore = logs.filter(l => {
+      if (l.id === trashId) return false
+      
+      const isAttendance = l.original_table === 'attendance_records' && l.data?.meeting_id === meetingId
+      const isMemorization = l.original_table === 'memorization_records' && l.data?.meeting_id === meetingId
+      // note: journal is currently part of meeting.summary, but if it was separated, we'd check here
+      
+      return isAttendance || isMemorization
+    })
+
+    // Restore them all
+    childrenToRestore.forEach(child => {
+      mutateData(child.original_table, 'INSERT', child.data, getCacheKeyForTable(child.original_table))
+      mutateData('audit_logs', 'DELETE', { id: child.id }, 'tahfidz_audit_logs')
+    })
+  }
 
   return true
 }

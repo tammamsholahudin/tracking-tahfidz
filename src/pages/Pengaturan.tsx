@@ -206,25 +206,25 @@ export default function Pengaturan() {
               </div>
               <div className={styles.menuText}>
                 <span className={styles.menuTitle}>Tentang Aplikasi</span>
-                <span className={styles.menuDesc}>Tracking Tahfidz MAM! v1.2.0</span>
+                <span className={styles.menuDesc}>Tracking Tahfidz MAM! v1.3.0</span>
               </div>
             </div>
 
             <div className={styles.aboutBox}>
-              <div className={styles.aboutVersion}>Versi 1.2.0</div>
+              <div className={styles.aboutVersion}>Versi 1.3.0</div>
               <div className={styles.aboutLogo}>
                 📖
               </div>
               <h2 className={styles.aboutName}>Tracking Tahfidz MAM!</h2>
               <p className={styles.aboutDesc}>
-                Version 1.2.0 — Release 5 Agustus 2026
+                Version 1.3.0 — Release 5 Agustus 2026
               </p>
               <p className={styles.aboutDesc}>
                 Alat kerja Guru Tahfidz untuk mencatat absensi, setoran hafalan, dan perkembangan santri.
               </p>
               <div className={styles.aboutRows}>
                 <div className={styles.aboutRow}>
-                  <span>Versi</span><strong>1.2.0</strong>
+                  <span>Versi</span><strong>1.3.0</strong>
                 </div>
                 <div className={styles.aboutRow}>
                   <span>Mode</span>

@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Shield, Plus, Edit2, UserX, UserCheck,
-  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2, Database
+  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { createClient } from '@supabase/supabase-js'
 import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
-import DataRecovery from './DataRecovery'
 import styles from './MasterIndex.module.css'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -52,7 +51,7 @@ const emptyForm = { name: '', email: '', phone: '', role: 'guru' as GRole, passw
 export default function MasterIndex() {
   const { profile, setActiveWorkspaceId } = useAuthStore()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'guru' | 'hak-akses' | 'recovery'>('guru')
+  const [activeTab, setActiveTab] = useState<'guru' | 'hak-akses'>('guru')
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<'semua' | GRole>('semua')
@@ -277,15 +276,7 @@ export default function MasterIndex() {
         >
           <KeyRound size={16} /> Hierarki & Hak Akses
         </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'recovery' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('recovery')}
-          style={{ color: 'var(--clr-danger)' }}
-        >
-          <Database size={16} /> Recovery Data
-        </button>
       </div>
-
       {/* ── TAB DATA GURU ── */}
       {activeTab === 'guru' && (
         <div className={styles.content}>
@@ -643,7 +634,7 @@ export default function MasterIndex() {
         </div>
       )}
       
-      {activeTab === 'recovery' && <DataRecovery />}
+      {/* Render selected tab content */}
     </div>
   )
 }
