@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.portal_links (
     is_active BOOLEAN DEFAULT true,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    created_by UUID REFERENCES public.users(id) ON DELETE SET NULL
+    created_by UUID REFERENCES public.teachers(id) ON DELETE SET NULL
 );
 
 -- 2. Create Portal Access Logs Table
@@ -34,7 +34,7 @@ ALTER TABLE public.portal_access_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Admin can manage portal links" ON public.portal_links
     FOR ALL
     USING (
-        (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
+        (SELECT role FROM public.teachers WHERE user_id = auth.uid()) = 'admin'
     );
 
 -- Allow anonymous read to check if link exists/validate password
@@ -47,7 +47,7 @@ CREATE POLICY "Anonymous can view specific portal link" ON public.portal_links
 CREATE POLICY "Admin can manage portal logs" ON public.portal_access_logs
     FOR ALL
     USING (
-        (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
+        (SELECT role FROM public.teachers WHERE user_id = auth.uid()) = 'admin'
     );
 
 -- Anonymous can insert access logs (for telemetry when accessing portal)

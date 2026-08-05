@@ -280,26 +280,32 @@ export default function PortalManagement() {
               )}
 
               {(!form.allClasses || form.entityType === 'wali_kelas') && (
-                <div style={{ background: 'var(--clr-gray-50)', padding: '12px', borderRadius: '8px', border: '1px solid var(--clr-gray-200)', maxHeight: '150px', overflowY: 'auto' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '8px' }}>Pilih Kelas <span style={{color: 'red'}}>*</span></label>
-                  {classes.map((c:any) => (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <input 
-                        type={form.entityType === 'wali_kelas' ? 'radio' : 'checkbox'} 
-                        name="clsTarget"
-                        checked={form.targetClasses.includes(c.id)}
-                        onChange={(e) => {
-                          if (form.entityType === 'wali_kelas') {
-                            setForm({...form, targetClasses: [c.id]})
-                          } else {
-                            if (e.target.checked) setForm({...form, targetClasses: [...form.targetClasses, c.id]})
-                            else setForm({...form, targetClasses: form.targetClasses.filter(id => id !== c.id)})
-                          }
-                        }}
-                      />
-                      <span style={{ fontSize: '14px' }}>{c.name}</span>
-                    </div>
-                  ))}
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>Pilih Kelas <span style={{color: 'red'}}>*</span></label>
+                  <div style={{ background: 'var(--clr-gray-50)', padding: '12px', borderRadius: '8px', border: '1px solid var(--clr-gray-300)', maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {classes.length === 0 && (
+                      <span style={{ fontSize: '13px', color: 'var(--clr-gray-500)' }}>Belum ada data kelas.</span>
+                    )}
+                    {classes.map((c:any) => (
+                      <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '4px 0' }}>
+                        <input 
+                          type={form.entityType === 'wali_kelas' ? 'radio' : 'checkbox'} 
+                          name="clsTarget"
+                          style={{ width: '16px', height: '16px', accentColor: 'var(--clr-primary)' }}
+                          checked={form.targetClasses.includes(c.id)}
+                          onChange={(e) => {
+                            if (form.entityType === 'wali_kelas') {
+                              setForm({...form, targetClasses: [c.id]})
+                            } else {
+                              if (e.target.checked) setForm({...form, targetClasses: [...form.targetClasses, c.id]})
+                              else setForm({...form, targetClasses: form.targetClasses.filter(id => id !== c.id)})
+                            }
+                          }}
+                        />
+                        <span style={{ fontSize: '14px', color: 'var(--clr-gray-800)' }}>{c.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
 
