@@ -240,6 +240,10 @@ export default function Pengaturan() {
                   <span>Role</span>
                   <strong>{profile?.role === 'admin' ? '👑 Admin' : '📖 Guru Tahfidz'}</strong>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--clr-gray-200)', color: 'var(--clr-gray-500)', fontSize: '14px' }}>
+                  <span>Versi Aplikasi</span>
+                  <span style={{ fontWeight: 600, color: 'var(--clr-gray-900)' }}>v1.2.0</span>
+                </div>
               </div>
             </div>
           </div>
