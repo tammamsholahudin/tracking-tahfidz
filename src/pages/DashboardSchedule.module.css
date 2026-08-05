@@ -161,12 +161,13 @@
   align-items: center;
   gap: 4px;
 }
-
+.mobileEventTitle {
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--clr-gray-800);
   /* removed nowrap so text can wrap if needed, though we use min-width now */
   word-wrap: break-word;
+}
 
 .mobileEventLoc {
   font-size: var(--text-xs);
