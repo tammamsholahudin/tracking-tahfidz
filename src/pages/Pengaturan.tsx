@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   User, Lock, LogOut, Info,
-  ChevronRight, Eye, EyeOff, BookOpen,
+  ChevronRight, Eye, EyeOff,
   CheckCircle2, Building2, Save
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
@@ -206,22 +206,20 @@ export default function Pengaturan() {
               </div>
               <div className={styles.menuText}>
                 <span className={styles.menuTitle}>Tentang Aplikasi</span>
-                <span className={styles.menuDesc}>Tracking Tahfidz MAM! v1.0.0</span>
+                <span className={styles.menuDesc}>Tracking Tahfidz MAM! v1.1</span>
               </div>
             </div>
 
-            <div className={styles.aboutBox}>
-              <div className={styles.aboutLogo}>
-                <BookOpen size={32} color="var(--clr-primary-600)" />
-              </div>
+            <div className={styles.aboutSection}>
+              <div className={styles.logoPlaceholder}>📖</div>
               <h2 className={styles.aboutName}>Tracking Tahfidz MAM!</h2>
+              <p className={styles.aboutVersion}>Version 1.1<br/>Release Date: 5 Agustus 2026</p>
               <p className={styles.aboutDesc}>
-                Alat kerja Guru Tahfidz untuk mencatat absensi,
-                setoran hafalan, dan perkembangan santri.
+                Alat kerja Guru Tahfidz untuk mencatat absensi, setoran hafalan, dan perkembangan santri.
               </p>
               <div className={styles.aboutRows}>
                 <div className={styles.aboutRow}>
-                  <span>Versi</span><strong>1.0.0</strong>
+                  <span>Versi</span><strong>1.1</strong>
                 </div>
                 <div className={styles.aboutRow}>
                   <span>Mode</span>

@@ -138,9 +138,9 @@ export default function Profile() {
         {/* App Info */}
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Tentang Aplikasi</h2>
-          <div className={styles.infoRow}><span>Versi</span><strong>1.0.0</strong></div>
+          <div className={styles.infoRow}><span>Versi</span><strong>1.1</strong></div>
           <div className={styles.infoRow}><span>Mode</span><strong>🟢 Cloud Tersinkronisasi</strong></div>
-          <div className={styles.infoRow}><span>Aplikasi</span><strong>Tracking Tahfidz MAM!</strong></div>
+          <div className={styles.infoRow}><span>Aplikasi</span><strong>Tracking Tahfidz MAM! v1.1</strong></div>
         </div>
 
         {/* Logout & Reset */}

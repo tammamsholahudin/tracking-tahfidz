@@ -140,9 +140,9 @@ export default function Login() {
           </button>
         </form>
 
-        <p className={styles.footer}>
-          © 2026 Tracking Tahfidz MAM! · Semua hak dilindungi
-        </p>
+        <div className={styles.footer}>
+          © 2026 Tracking Tahfidz MAM! v1.1 · Release 5 Agustus 2026
+        </div>
       </div>
     </div>
   )
