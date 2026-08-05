@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Link as LinkIcon, Key, Copy, Clock, Power } from 'lucide-react'
+import { Plus, Link as LinkIcon, Key, Copy, Clock, Power, RefreshCw, ExternalLink } from 'lucide-react'
 import { generatePortalLink, fetchPortalLinks, togglePortalLinkStatus } from '@/lib/portal'
 import { useAuthStore } from '@/store/authStore'
 import { getSync } from '@/lib/db'
@@ -142,12 +142,22 @@ export default function PortalManagement() {
                     <button onClick={() => {
                       navigator.clipboard.writeText(link.password_hash)
                       toast('Sandi disalin!')
-                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-primary)' }}><Copy size={14} /></button>
+                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-primary)' }} title="Salin Sandi"><Copy size={14} /></button>
+                    <button onClick={() => {
+                      toast.success('Sandi baru berhasil dibuat! (Simulasi)')
+                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b' }} title="Ganti Password"><RefreshCw size={14} /></button>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Clock size={14} />
-                    <span>{formatExp(link.expires_at)}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Clock size={14} />
+                      <span>{formatExp(link.expires_at)}</span>
+                    </div>
+                    <button onClick={() => {
+                      window.open(`${window.location.origin}/p/${link.id}`, '_blank')
+                    }} style={{ background: 'var(--clr-primary-50)', color: 'var(--clr-primary)', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <ExternalLink size={12} /> Preview
+                    </button>
                   </div>
                 </div>
               </div>

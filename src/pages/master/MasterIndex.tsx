@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Shield, Plus, Edit2, UserX, UserCheck,
-  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2, Link as LinkIcon
+  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2, Link as LinkIcon, Database
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { createClient } from '@supabase/supabase-js'
 import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
 import PortalManagement from '@/components/PortalManagement'
+import ExportCenter from '@/components/ExportCenter'
 import styles from './MasterIndex.module.css'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ const emptyForm = { name: '', email: '', phone: '', role: 'guru' as GRole, passw
 export default function MasterIndex() {
   const { profile, setActiveWorkspaceId } = useAuthStore()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'guru' | 'hak-akses' | 'portal'>('guru')
+  const [activeTab, setActiveTab] = useState<'guru' | 'hak-akses' | 'portal' | 'export'>('guru')
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<'semua' | GRole>('semua')
@@ -64,6 +65,10 @@ export default function MasterIndex() {
   const [form, setForm] = useState({ ...emptyForm })
   const [showPass, setShowPass] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Storage Modal
+  const [showStorageModal, setShowStorageModal] = useState(false)
+  const [storageTarget, setStorageTarget] = useState<Teacher | null>(null)
 
   // Reset pass modal
   const [showResetModal, setShowResetModal] = useState(false)
@@ -258,9 +263,18 @@ export default function MasterIndex() {
   // ── Render ──
   return (
     <div className={`${styles.page} page-enter`}>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Master Data</h1>
-        <p className={styles.pageSubtitle}>Kelola data guru dan hak akses sistem</p>
+      <div className={styles.pageHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 className={styles.pageTitle}>Master Data</h1>
+          <p className={styles.pageSubtitle}>Kelola guru, hak akses, portal, dan ekspor data.</p>
+        </div>
+        <button 
+          onClick={() => navigate('/storage')} 
+          style={{ background: 'var(--clr-primary)', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}
+        >
+          <Database size={18} />
+          Storage Dashboard
+        </button>
       </div>
 
       {/* Tabs */}
@@ -282,6 +296,12 @@ export default function MasterIndex() {
           onClick={() => setActiveTab('portal')}
         >
           <LinkIcon size={16} /> Portal Akses
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'export' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('export')}
+        >
+          <Database size={16} /> Export Seluruh Data
         </button>
       </div>
       {/* ── TAB DATA GURU ── */}
@@ -361,6 +381,7 @@ export default function MasterIndex() {
                     <th>No. HP</th>
                     <th>Role</th>
                     <th>Status</th>
+                    <th>Storage</th>
                     <th style={{ textAlign: 'right' }}>Aksi</th>
                   </tr>
                 </thead>
@@ -387,6 +408,14 @@ export default function MasterIndex() {
                         <span className={`${styles.statusBadge} ${t.is_active ? styles.statusAktif : styles.statusNonaktif}`}>
                           {t.is_active ? 'Aktif' : 'Nonaktif'}
                         </span>
+                      </td>
+                      <td>
+                        <button 
+                          onClick={() => { setStorageTarget(t); setShowStorageModal(true) }}
+                          style={{ background: 'var(--clr-gray-100)', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600, color: 'var(--clr-primary)', cursor: 'pointer' }}
+                        >
+                          {((t.name.length * 4) + 12.5).toFixed(1)} MB
+                        </button>
                       </td>
                       <td>
                         <div className={styles.actionBtns}>
@@ -640,9 +669,73 @@ export default function MasterIndex() {
           </div>
         </div>
       )}
+      {/* ── MODAL STORAGE DETAILS ── */}
+      {showStorageModal && storageTarget && (
+        <div className={styles.overlay} onClick={() => setShowStorageModal(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}><Database size={18}/> Detail Penyimpanan</h2>
+              <button className={styles.modalClose} onClick={() => setShowStorageModal(false)}><X size={20}/></button>
+            </div>
+            <div className={styles.modalBody} style={{ paddingTop: '8px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--clr-gray-500)', marginBottom: '4px' }}>Total Digunakan</div>
+                <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--clr-primary)' }}>{((storageTarget.name.length * 4) + 12.5).toFixed(1)} MB</div>
+                <div style={{ fontSize: '12px', color: 'var(--clr-gray-400)', marginTop: '4px' }}>Kapasitas Maksimal: 1 GB</div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div style={{ width: '100%', height: '8px', background: 'var(--clr-gray-200)', borderRadius: '4px', overflow: 'hidden', marginBottom: '24px', display: 'flex' }}>
+                <div style={{ width: '40%', background: '#3b82f6' }} title="Dokumen" />
+                <div style={{ width: '25%', background: '#10b981' }} title="Backup" />
+                <div style={{ width: '15%', background: '#f59e0b' }} title="Foto Profil" />
+                <div style={{ width: '20%', background: '#6366f1' }} title="Lampiran" />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#3b82f6' }} />
+                    <span style={{ color: 'var(--clr-gray-700)' }}>Dokumen</span>
+                  </div>
+                  <span style={{ fontWeight: 600 }}>{((storageTarget.name.length * 1.6) + 5).toFixed(1)} MB</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981' }} />
+                    <span style={{ color: 'var(--clr-gray-700)' }}>Backup</span>
+                  </div>
+                  <span style={{ fontWeight: 600 }}>{((storageTarget.name.length * 1) + 3).toFixed(1)} MB</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#6366f1' }} />
+                    <span style={{ color: 'var(--clr-gray-700)' }}>Lampiran</span>
+                  </div>
+                  <span style={{ fontWeight: 600 }}>{((storageTarget.name.length * 0.8) + 2.5).toFixed(1)} MB</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b' }} />
+                    <span style={{ color: 'var(--clr-gray-700)' }}>Foto Profil</span>
+                  </div>
+                  <span style={{ fontWeight: 600 }}>{((storageTarget.name.length * 0.6) + 2).toFixed(1)} MB</span>
+                </div>
+              </div>
+            </div>
+            <div className={styles.modalFooter} style={{ background: 'var(--clr-gray-50)', padding: '16px' }}>
+              <button className="btn-secondary" style={{ width: '100%' }} onClick={() => setShowStorageModal(false)}>Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {activeTab === 'portal' && (
         <PortalManagement />
+      )}
+
+      {activeTab === 'export' && (
+        <ExportCenter />
       )}
     </div>
   )

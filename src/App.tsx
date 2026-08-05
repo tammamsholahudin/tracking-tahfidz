@@ -20,6 +20,7 @@ const TrashIndex = lazy(() => import('@/pages/TrashIndex'))
 const ParentPortal = lazy(() => import('@/pages/portal/ParentPortal'))
 const PublicPortal = lazy(() => import('@/pages/portal/PublicPortal'))
 const AktivitasTerakhir = lazy(() => import('@/pages/AktivitasTerakhir'))
+const StorageDashboard = lazy(() => import('@/pages/StorageDashboard'))
 
 import '@/styles/global.css'
 
@@ -99,7 +100,8 @@ export default function App() {
             {/* Admin Only */}
             <Route element={<AuthGuard requiredRole="admin" />}>
               <Route element={<AppLayout />}>
-                <Route path="/master"  element={<MasterIndex />} />
+                <Route path="/master" element={<MasterIndex />} />
+                <Route path="/storage" element={<StorageDashboard />} />
               </Route>
             </Route>
 
