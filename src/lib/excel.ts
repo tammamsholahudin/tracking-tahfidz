@@ -134,6 +134,34 @@ export function exportMemorizationExcel(data: any[], classData: any, filename = 
   XLSX.writeFile(wb, filename)
 }
 
+export function exportJournalExcel(meetingsData: any[], _classData: any, filename = 'Jurnal_Pembelajaran.xlsx') {
+  const wb = XLSX.utils.book_new()
+  
+  const formattedData = meetingsData.map((m, idx) => {
+    return {
+      'Pertemuan Ke': meetingsData.length - idx,
+      'Tanggal': new Date(m.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+      'Materi / Catatan': m.summary || m.notes || '-',
+      'Status': m.status || 'Pembelajaran',
+      'Dibuat Pada': new Date(m.created_at).toLocaleString('id-ID')
+    }
+  })
+
+  const ws = XLSX.utils.json_to_sheet(formattedData)
+  
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 15 }, // Pertemuan Ke
+    { wch: 25 }, // Tanggal
+    { wch: 50 }, // Catatan
+    { wch: 15 }, // Status
+    { wch: 20 }, // Dibuat
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Jurnal')
+  XLSX.writeFile(wb, filename)
+}
+
 export interface StudentImportData {
   nis: string
   nama: string

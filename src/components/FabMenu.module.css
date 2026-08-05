@@ -1,6 +1,6 @@
 .fabContainer {
   position: fixed;
-  bottom: calc(var(--bottom-nav-height, 60px) + 20px);
+  bottom: calc(var(--bottom-nav-height, 60px) + 24px); /* Safe area from bottom nav */
   right: 24px;
   display: flex;
   flex-direction: column;
@@ -11,7 +11,7 @@
 
 @media (min-width: 1025px) {
   .fabContainer {
-    bottom: 24px;
+    bottom: 32px;
   }
 }
 

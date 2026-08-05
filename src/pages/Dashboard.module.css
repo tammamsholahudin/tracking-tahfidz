@@ -250,6 +250,12 @@
   gap: var(--space-4);
   border-bottom: 1px solid var(--clr-gray-200);
   margin-bottom: var(--space-4);
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+.tabWrap::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {

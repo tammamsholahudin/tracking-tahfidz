@@ -53,7 +53,9 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([])
   
   // UI States
-  const [scheduleTab, setScheduleTab] = useState<'day' | 'week' | 'month'>('week')
+  const [scheduleTab, setScheduleTab] = useState<'day' | 'week' | 'month'>(() => {
+    return (localStorage.getItem('tahfidz_schedule_tab_pref') as 'day' | 'week' | 'month') || 'day'
+  })
   const [scheduleFilter, setScheduleFilter] = useState<string>('Semua')
   const [todos, setTodos] = useState<Todo[]>([
     { id: '1', text: 'Setoran Kelas 3 Bilal', done: false },
@@ -570,9 +572,9 @@ export default function Dashboard() {
                     Sinkron Google Kalender
                   </button>
                   <div className={styles.tabWrap} style={{ margin: 0, border: 'none' }}>
-                    <button className={`${styles.tab} ${scheduleTab === 'day' ? styles.tabActive : ''}`} onClick={() => setScheduleTab('day')}>Day</button>
-                    <button className={`${styles.tab} ${scheduleTab === 'week' ? styles.tabActive : ''}`} onClick={() => setScheduleTab('week')}>Week</button>
-                    <button className={`${styles.tab} ${scheduleTab === 'month' ? styles.tabActive : ''}`} onClick={() => setScheduleTab('month')}>Month</button>
+                    <button className={`${styles.tab} ${scheduleTab === 'day' ? styles.tabActive : ''}`} onClick={() => { setScheduleTab('day'); localStorage.setItem('tahfidz_schedule_tab_pref', 'day') }}>Day</button>
+                    <button className={`${styles.tab} ${scheduleTab === 'week' ? styles.tabActive : ''}`} onClick={() => { setScheduleTab('week'); localStorage.setItem('tahfidz_schedule_tab_pref', 'week') }}>Week</button>
+                    <button className={`${styles.tab} ${scheduleTab === 'month' ? styles.tabActive : ''}`} onClick={() => { setScheduleTab('month'); localStorage.setItem('tahfidz_schedule_tab_pref', 'month') }}>Month</button>
                   </div>
                 </div>
               </div>
@@ -637,7 +639,8 @@ export default function Dashboard() {
                 </div>
               ) : scheduleTab === 'week' ? (
                 <div className={scheduleStyles.calendarBody} style={{ padding: 0, background: 'white', minHeight: '400px', borderRadius: 'var(--radius-lg)' }}>
-                  <div className={scheduleStyles.weekGrid}>
+                  {/* DESKTOP WEEK VIEW */}
+                  <div className={scheduleStyles.desktopWeekView}>
                     <div className={scheduleStyles.daysRow}>
                       {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((d, i) => {
                         const dateNum = weekDates[i].getDate()
@@ -705,6 +708,41 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* MOBILE WEEK VIEW */}
+                  <div className={scheduleStyles.mobileWeekView}>
+                    {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map((d, i) => {
+                      const daySchedules = filteredSchedules.filter(s => s.day === d)
+                      if (daySchedules.length === 0) return null; // Hide empty days on mobile to save space
+                      
+                      const dateNum = weekDates[i].getDate()
+                      return (
+                        <div key={d} className={scheduleStyles.mobileDayBlock}>
+                          <div className={scheduleStyles.mobileDayHeader}>
+                            {d}, {dateNum}
+                          </div>
+                          {daySchedules.map(s => (
+                            <div key={s.id} className={scheduleStyles.mobileEventCard} style={{ borderLeftColor: `var(--clr-${s.color}-500)` }}>
+                              <div className={scheduleStyles.mobileEventTime}>
+                                <Clock size={12} /> {s.start_time} - {s.end_time}
+                              </div>
+                              <div className={scheduleStyles.mobileEventTitle}>{s.title}</div>
+                              {s.location && (
+                                <div className={scheduleStyles.mobileEventLoc}>
+                                  <MapPin size={12} /> {s.location}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                    {filteredSchedules.length === 0 && (
+                       <div style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--clr-gray-400)' }}>
+                         Tidak ada jadwal minggu ini.
+                       </div>
+                    )}
                   </div>
                 </div>
               ) : (

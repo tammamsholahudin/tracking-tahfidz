@@ -1,0 +1,146 @@
+[
+  {
+    "id": "tgt-1784508899379",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784474339086_nuv03zxnn",
+    "semester": "Ganjil",
+    "surah": "Al-Lail",
+    "created_at": "2026-07-20T00:54:59.728914+00:00"
+  },
+  {
+    "id": "tgt-1784508914204",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784474339086_nuv03zxnn",
+    "semester": "Ganjil",
+    "surah": "Asy-Syams",
+    "created_at": "2026-07-20T00:55:14.502872+00:00"
+  },
+  {
+    "id": "tgt-1784508933335",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784474339086_nuv03zxnn",
+    "semester": "Ganjil",
+    "surah": "Al-Balad",
+    "created_at": "2026-07-20T00:55:33.723862+00:00"
+  },
+  {
+    "id": "tgt-1784508959320",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784474339086_nuv03zxnn",
+    "semester": "Genap",
+    "surah": "Al-Fajr",
+    "created_at": "2026-07-20T00:55:59.62566+00:00"
+  },
+  {
+    "id": "tgt-1784508983489",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784474339086_nuv03zxnn",
+    "semester": "Genap",
+    "surah": "Al-Ghasyiyah",
+    "created_at": "2026-07-20T00:56:23.799102+00:00"
+  },
+  {
+    "id": "tgt-1784509005759",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476858323_8zkx1vkok",
+    "semester": "Ganjil",
+    "surah": "Al-Lail",
+    "created_at": "2026-07-20T00:56:46.062496+00:00"
+  },
+  {
+    "id": "tgt-1784509015730",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476858323_8zkx1vkok",
+    "semester": "Ganjil",
+    "surah": "Asy-Syams",
+    "created_at": "2026-07-20T00:56:56.0254+00:00"
+  },
+  {
+    "id": "tgt-1784509024094",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476858323_8zkx1vkok",
+    "semester": "Ganjil",
+    "surah": "Al-Balad",
+    "created_at": "2026-07-20T00:57:04.400092+00:00"
+  },
+  {
+    "id": "tgt-1784509032924",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476858323_8zkx1vkok",
+    "semester": "Genap",
+    "surah": "Al-Fajr",
+    "created_at": "2026-07-20T00:57:13.235033+00:00"
+  },
+  {
+    "id": "tgt-1784509043585",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476858323_8zkx1vkok",
+    "semester": "Genap",
+    "surah": "Al-Ghasyiyah",
+    "created_at": "2026-07-20T00:57:23.893227+00:00"
+  },
+  {
+    "id": "tgt-1784512628383",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476948379_vjs2l8md7",
+    "semester": "Ganjil",
+    "surah": "Al-Fajr",
+    "created_at": "2026-07-20T01:57:06.278031+00:00"
+  },
+  {
+    "id": "tgt-1784512638491",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476948379_vjs2l8md7",
+    "semester": "Ganjil",
+    "surah": "Al-Ghasyiyah",
+    "created_at": "2026-07-20T01:57:16.302901+00:00"
+  },
+  {
+    "id": "tgt-1784512657807",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476948379_vjs2l8md7",
+    "semester": "Genap",
+    "surah": "Al-Infitar",
+    "created_at": "2026-07-20T01:57:35.671008+00:00"
+  },
+  {
+    "id": "tgt-1784512690260",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476948379_vjs2l8md7",
+    "semester": "Genap",
+    "surah": "Al-Mutaffifin",
+    "created_at": "2026-07-20T01:58:08.087784+00:00"
+  },
+  {
+    "id": "tgt-1784512707875",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476991277_t4a85af13",
+    "semester": "Ganjil",
+    "surah": "Al-Fajr",
+    "created_at": "2026-07-20T01:58:25.708649+00:00"
+  },
+  {
+    "id": "tgt-1784512715144",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476991277_t4a85af13",
+    "semester": "Ganjil",
+    "surah": "Al-Ghasyiyah",
+    "created_at": "2026-07-20T01:58:32.986939+00:00"
+  },
+  {
+    "id": "tgt-1784512749999",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476991277_t4a85af13",
+    "semester": "Genap",
+    "surah": "Al-Infitar",
+    "created_at": "2026-07-20T01:59:08.256315+00:00"
+  },
+  {
+    "id": "tgt-1784512783660",
+    "guru_id": "4108fb80-6f90-4aef-8a13-f7be2ed95ab6",
+    "class_id": "cls_1784476991277_t4a85af13",
+    "semester": "Genap",
+    "surah": "Al-Mutaffifin",
+    "created_at": "2026-07-20T01:59:41.519129+00:00"
+  }
+]

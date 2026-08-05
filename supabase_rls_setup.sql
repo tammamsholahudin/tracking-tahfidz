@@ -1,172 +1,11 @@
 -- =========================================================
--- SCRIPT SETUP FULL SCHEMA & SUPABASE AUTH & ROW LEVEL SECURITY (RLS)
--- Untuk Tracking Tahfidz MAM!
--- Jalankan skrip ini di SQL Editor pada Supabase Dashboard
+-- SAFE RLS MIGRATION SCRIPT FOR TAHFIDZ MAM
 -- =========================================================
+-- Skrip ini TIDAK AKAN menghapus tabel (NO DROP TABLE)
+-- dan hanya akan MENGAKTIFKAN RLS (Row Level Security)
+-- beserta kebijakan akses (Policies) yang sesuai dengan Role.
 
--- =========================================================
--- 1. CREATE ALL TABLES
--- =========================================================
-
--- Drop existing tables (except teachers which might contain auth links) to ensure clean schema
-DROP TABLE IF EXISTS public.school_classes CASCADE;
-DROP TABLE IF EXISTS public.students CASCADE;
-DROP TABLE IF EXISTS public.targets CASCADE;
-DROP TABLE IF EXISTS public.schedules CASCADE;
-DROP TABLE IF EXISTS public.meetings CASCADE;
-DROP TABLE IF EXISTS public.attendance_records CASCADE;
-DROP TABLE IF EXISTS public.memorization_records CASCADE;
-DROP TABLE IF EXISTS public.payments CASCADE;
-DROP TABLE IF EXISTS public.lesson_groups CASCADE;
-DROP TABLE IF EXISTS public.private_students CASCADE;
-DROP TABLE IF EXISTS public.audit_logs CASCADE;
-
-CREATE TABLE IF NOT EXISTS public.teachers (
-    id TEXT PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    email TEXT,
-    phone TEXT,
-    photo_url TEXT,
-    role TEXT DEFAULT 'guru',
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.school_classes (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    homeroom_teacher TEXT,
-    grade_level TEXT,
-    semester TEXT,
-    academic_year TEXT,
-    total_students INTEGER DEFAULT 0,
-    progress INTEGER DEFAULT 0,
-    notes TEXT,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.students (
-    id TEXT PRIMARY KEY,
-    class_id TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    nis TEXT,
-    name TEXT NOT NULL,
-    gender TEXT,
-    last_surah TEXT,
-    last_verse TEXT,
-    progress INTEGER DEFAULT 0,
-    note TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.targets (
-    id TEXT PRIMARY KEY,
-    class_id TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    semester TEXT,
-    surah TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.schedules (
-    id TEXT PRIMARY KEY,
-    class_id TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    day TEXT NOT NULL,
-    start_time TEXT NOT NULL,
-    end_time TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.meetings (
-    id TEXT PRIMARY KEY,
-    class_id TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    meeting_number INTEGER,
-    date TEXT NOT NULL,
-    status TEXT,
-    summary TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.attendance_records (
-    id TEXT PRIMARY KEY,
-    meeting_id TEXT NOT NULL,
-    class_id TEXT NOT NULL,
-    student_id TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    status TEXT NOT NULL,
-    note TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.memorization_records (
-    id TEXT PRIMARY KEY,
-    meeting_id TEXT,
-    class_id TEXT NOT NULL,
-    student_id TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    surah_name TEXT NOT NULL,
-    verse_start TEXT,
-    verse_end TEXT,
-    status TEXT,
-    score INTEGER,
-    note TEXT,
-    date TEXT,
-    surat_selesai BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.payments (
-    id TEXT PRIMARY KEY,
-    class_id TEXT NOT NULL,
-    student_id TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    amount NUMERIC,
-    date TEXT,
-    note TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.lesson_groups (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    day TEXT,
-    time TEXT,
-    total_students INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.private_students (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    progress INTEGER DEFAULT 0,
-    target TEXT,
-    last_surah TEXT,
-    last_verse INTEGER,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    original_table TEXT NOT NULL,
-    item_id TEXT NOT NULL,
-    item_name TEXT NOT NULL,
-    deleted_by TEXT NOT NULL,
-    guru_id TEXT NOT NULL,
-    data JSONB NOT NULL,
-    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- =========================================================
--- 2. ENABLE RLS (ROW LEVEL SECURITY)
--- =========================================================
-
+-- 1. Mengaktifkan RLS pada semua tabel
 ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.school_classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
@@ -180,106 +19,84 @@ ALTER TABLE public.lesson_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.private_students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
--- =========================================================
--- 3. MEMBUAT POLICIES (ATURAN HAK AKSES)
--- =========================================================
--- Aturan Umum: Guru hanya bisa CRUD data miliknya sendiri (guru_id = string dari auth.uid() atau user_id-nya)
+-- 2. Hapus policies yang mungkin sudah ada (agar tidak bentrok)
+DO $$ 
+DECLARE 
+  r RECORD;
+BEGIN
+  FOR r IN (SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public') 
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', r.policyname, r.tablename);
+  END LOOP;
+END $$;
 
--- TEACHERS: Guru bisa membaca profil semua (diperlukan untuk fungsi assignment dll)
-CREATE POLICY "Teacher can view any profile" 
-ON public.teachers FOR SELECT 
-USING (true);
+-- 3. Membuat Fungsi Pembantu untuk mengecek Role
+CREATE OR REPLACE FUNCTION public.get_auth_role()
+RETURNS TEXT AS $$
+  SELECT role FROM public.teachers WHERE user_id = auth.uid() LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER;
 
-CREATE POLICY "Teacher can update own profile" 
-ON public.teachers FOR UPDATE 
-USING (user_id = auth.uid());
+CREATE OR REPLACE FUNCTION public.get_auth_teacher_id()
+RETURNS TEXT AS $$
+  SELECT id FROM public.teachers WHERE user_id = auth.uid() LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER;
 
-CREATE POLICY "Admin can insert teacher profile" 
-ON public.teachers FOR INSERT 
-WITH CHECK ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
-CREATE POLICY "Admin can update any teacher profile" 
-ON public.teachers FOR UPDATE 
-USING ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
-CREATE POLICY "Admin can delete teacher profile" 
-ON public.teachers FOR DELETE 
-USING ((SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- CLASSES
-CREATE POLICY "Guru or Admin can CRUD classes" 
-ON public.school_classes FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- STUDENTS
-CREATE POLICY "Guru or Admin can CRUD students" 
-ON public.students FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- MEETINGS
-CREATE POLICY "Guru or Admin can CRUD meetings" 
-ON public.meetings FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- ATTENDANCE
-CREATE POLICY "Guru or Admin can CRUD attendance" 
-ON public.attendance_records FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- MEMORIZATION
-CREATE POLICY "Guru or Admin can CRUD memorization" 
-ON public.memorization_records FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- TARGETS
-CREATE POLICY "Guru or Admin can CRUD targets" 
-ON public.targets FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- SCHEDULES
-CREATE POLICY "Guru or Admin can CRUD schedules" 
-ON public.schedules FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- PAYMENTS
-CREATE POLICY "Guru or Admin can CRUD payments" 
-ON public.payments FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- LESSON GROUPS & PRIVATE STUDENTS
-CREATE POLICY "Guru or Admin can CRUD lesson groups" 
-ON public.lesson_groups FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
-CREATE POLICY "Guru or Admin can CRUD private students" 
-ON public.private_students FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
-
--- AUDIT LOGS
-CREATE POLICY "Guru or Admin can CRUD audit logs" 
-ON public.audit_logs FOR ALL 
-USING (guru_id = (SELECT id FROM teachers WHERE user_id = auth.uid() LIMIT 1)::text OR (SELECT role FROM teachers WHERE user_id = auth.uid() LIMIT 1) = 'admin');
+-- 4. Membuat Policies untuk setiap tabel
 
 -- =========================================================
--- 4. POLICIES UNTUK PARENT PORTAL (ANONYMOUS READ)
+-- TEACHERS (Guru & Admin & Wali Kelas)
 -- =========================================================
+-- Admin bisa melihat & mengedit semua guru
+-- Guru & Wali Kelas hanya bisa melihat semua guru (untuk kebutuhan referensi) tapi hanya bisa mengedit dirinya sendiri
+CREATE POLICY "Admin dapat mengelola semua data guru" ON public.teachers
+  FOR ALL USING (public.get_auth_role() = 'admin');
 
-CREATE POLICY "Public can read classes" 
-ON public.school_classes FOR SELECT 
-USING (true);
+CREATE POLICY "Semua user bisa melihat data guru" ON public.teachers
+  FOR SELECT USING (true);
 
-CREATE POLICY "Public can read students" 
-ON public.students FOR SELECT 
-USING (true);
+CREATE POLICY "Guru hanya dapat mengupdate profilnya sendiri" ON public.teachers
+  FOR UPDATE USING (user_id = auth.uid());
 
-CREATE POLICY "Public can read attendance" 
-ON public.attendance_records FOR SELECT 
-USING (true);
+-- =========================================================
+-- MACRO POLICIES (BERLAKU UNTUK SEMUA TABEL DATA)
+-- =========================================================
+-- Definisi Akses:
+-- 1. Admin -> FULL ACCESS (ALL)
+-- 2. Guru -> FULL ACCESS (ALL) TAPI hanya untuk record dimana guru_id = id_milik_guru
+-- 3. Wali Kelas -> READ ONLY (SELECT) TAPI hanya untuk record dimana class_id = kelas_yang_diwali (Untuk simplifikasi, jika tidak ada relasi langsung, Wali Kelas diberikan read-only ke semua data atau disamakan dengan guru_id tertentu jika relevan, disini diasumsikan wali kelas read-only semua kelas karena di front-end sudah difilter)
 
-CREATE POLICY "Public can read memorizations" 
-ON public.memorization_records FOR SELECT 
-USING (true);
+-- Membuat Macro Policy Generator untuk tabel-tabel yang punya kolom guru_id
+DO $$
+DECLARE
+  t TEXT;
+  tables_with_guru_id TEXT[] := ARRAY[
+    'school_classes', 'students', 'targets', 'schedules', 
+    'meetings', 'attendance_records', 'memorization_records', 
+    'payments', 'lesson_groups', 'private_students', 'audit_logs'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tables_with_guru_id LOOP
+    
+    -- ADMIN: Full Access
+    EXECUTE format('
+      CREATE POLICY "Admin All Access %s" ON public.%s 
+      FOR ALL USING (public.get_auth_role() = ''admin'')
+    ', t, t);
 
-CREATE POLICY "Public can read targets" 
-ON public.targets FOR SELECT 
-USING (true);
+    -- GURU: Full Access untuk data miliknya (guru_id)
+    EXECUTE format('
+      CREATE POLICY "Guru All Access Own Data %s" ON public.%s 
+      FOR ALL USING (
+        public.get_auth_role() = ''guru'' 
+        AND guru_id = public.get_auth_teacher_id()
+      )
+    ', t, t);
+
+    -- WALI KELAS: Read-Only Access untuk semua data (dibatasi di frontend jika perlu)
+    EXECUTE format('
+      CREATE POLICY "Wali Kelas Read Only %s" ON public.%s 
+      FOR SELECT USING (public.get_auth_role() = ''wali_kelas'')
+    ', t, t);
+    
+  END LOOP;
+END $$;

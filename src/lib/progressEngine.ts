@@ -14,6 +14,11 @@ export interface ProgressResult {
   suratTarget: number
   completedSurahs: string[]
   status: 'belum_mulai' | 'tahap_awal' | 'dalam_proses' | 'hampir_tercapai' | 'tercapai'
+  totalSurat: number
+  totalAyat: number
+  highestJuz: number
+  highestSurat: string
+  lastAyat: number
 }
 
 export interface OverallProgressResult {
@@ -110,7 +115,7 @@ export function calculateStudentProgress(
   const activeTargets = semester ? classTargets.filter(t => t.semester === semester) : classTargets;
   
   if (!activeTargets || activeTargets.length === 0) {
-    return { pct: 0, suratSelesai: 0, suratTarget: 0, completedSurahs: [], status: 'belum_mulai' }
+    return { pct: 0, suratSelesai: 0, suratTarget: 0, completedSurahs: [], status: 'belum_mulai', totalSurat: 0, totalAyat: 0, highestJuz: 0, highestSurat: '-', lastAyat: 0 }
   }
 
   const suratTarget = activeTargets.length
@@ -134,12 +139,58 @@ export function calculateStudentProgress(
   const suratSelesai = completedSurahs.length
   const pct = suratTarget > 0 ? Math.round((suratSelesai / suratTarget) * 100) : 0
   
+  const allStudentRecords = memorizationRecords.filter(r => r.student_id === studentId && (r.status === 'lancar' || r.status === 'sangat_lancar' || r.status === 'selesai'))
+  allStudentRecords.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+  
+  let totalAyat = 0
+  let highestJuz = 0
+  let highestSurat = '-'
+  let lastAyat = 0
+  
+  const surahGroups = allStudentRecords.reduce((acc, curr) => {
+    if (!acc[curr.surah_name]) acc[curr.surah_name] = { verses: new Set<number>(), selesai: false }
+    const start = parseInt(curr.verse_start) || 0
+    const end = parseInt(curr.verse_end) || 0
+    for (let i = start; i <= end; i++) {
+        if(i>0) acc[curr.surah_name].verses.add(i)
+    }
+    if (curr.surat_selesai || curr.status === 'selesai') acc[curr.surah_name].selesai = true
+    return acc
+  }, {} as Record<string, { verses: Set<number>, selesai: boolean }>)
+
+  let totalSuratKeseluruhan = 0
+  Object.keys(surahGroups).forEach(surahName => {
+    const sData = SURAHS.find(s => s.name_latin === surahName)
+    if (sData) {
+      if (surahGroups[surahName].selesai || surahGroups[surahName].verses.size >= sData.total_verses) {
+        totalSuratKeseluruhan++
+      }
+      totalAyat += surahGroups[surahName].verses.size
+      const juz = getJuzFromSurah(sData.number)
+      if (juz >= highestJuz) {
+        highestJuz = juz
+        highestSurat = surahName
+      }
+    }
+  })
+
+  if (allStudentRecords.length > 0) {
+    const lastRec = allStudentRecords[0]
+    highestSurat = lastRec.surah_name // We use the latest as 'highest/last achieved'
+    lastAyat = parseInt(lastRec.verse_end) || 0
+  }
+
   return {
     pct,
     suratSelesai,
     suratTarget,
     completedSurahs,
-    status: getProgressStatus(pct)
+    status: getProgressStatus(pct),
+    totalSurat: totalSuratKeseluruhan,
+    totalAyat,
+    highestJuz,
+    highestSurat,
+    lastAyat
   }
 }
 

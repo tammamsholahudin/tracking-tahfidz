@@ -110,9 +110,11 @@ export default function ScheduleIndex({ entityId, entityType = 'sekolah', entity
             Atur jadwal tetap untuk kelas ini (Hari, Jam, dan Masa Berlaku).
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(true)}>
-          <Plus size={16} /> Tambah Jadwal
-        </button>
+        {useAuthStore.getState().profile?.role !== 'wali_kelas' && (
+          <button className="btn-primary" onClick={() => setShowForm(true)}>
+            <Plus size={16} /> Tambah Jadwal
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -164,12 +166,16 @@ export default function ScheduleIndex({ entityId, entityType = 'sekolah', entity
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <button onClick={() => handleEdit(s)} style={{ background: 'none', border: 'none', color: 'var(--clr-info)', cursor: 'pointer', padding: '4px' }}>
-                    <Edit2 size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(s.id)} style={{ background: 'none', border: 'none', color: 'var(--clr-danger)', cursor: 'pointer', padding: '4px' }}>
-                    <Trash2 size={16} />
-                  </button>
+                  {useAuthStore.getState().profile?.role !== 'wali_kelas' && (
+                    <>
+                      <button onClick={() => handleEdit(s)} style={{ background: 'none', border: 'none', color: 'var(--clr-info)', cursor: 'pointer', padding: '4px' }}>
+                        <Edit2 size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(s.id)} style={{ background: 'none', border: 'none', color: 'var(--clr-danger)', cursor: 'pointer', padding: '4px' }}>
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--clr-gray-500)', background: 'var(--clr-gray-50)', padding: 'var(--space-2)', borderRadius: 'var(--radius-md)' }}>

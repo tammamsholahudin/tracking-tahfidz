@@ -11,6 +11,7 @@ import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import AttendancePage from './Attendance'
 import MemorizationPage from './Memorization'
 import ClassProgressPage from './ClassProgress'
+import ClassJournalPage from './ClassJournalPage'
 import PaymentPage from './PaymentPage'
 import { exportAttendanceExcel, exportMemorizationExcel } from '@/lib/excel'
 import { exportAttendancePDF, exportProgressPDF } from '@/lib/pdf'
@@ -44,6 +45,7 @@ export default function ClassDashboard() {
   const [showEditStudent, setShowEditStudent] = useState<any>(null)
   const [showSetJadwal, setShowSetJadwal] = useState(false)
   const [showAddMeeting, setShowAddMeeting] = useState(false)
+  const [sortMode, setSortMode] = useState<string>('default')
   
   const [cls, setCls] = useState<any>(null)
   const [students, setStudents] = useState<any[]>([])
@@ -69,7 +71,10 @@ export default function ClassDashboard() {
       tabs.push({ id: 'pembayaran', label: 'Pembayaran', icon: <Settings size={16} /> })
     }
 
-    tabs.push({ id: 'settings', label: 'Pengaturan', icon: <Settings size={16} /> })
+    const { profile } = useAuthStore.getState()
+    if (profile?.role !== 'wali_kelas') {
+      tabs.push({ id: 'settings', label: 'Pengaturan', icon: <Settings size={16} /> })
+    }
     return tabs
   }
 
@@ -410,11 +415,64 @@ export default function ClassDashboard() {
 
             {/* Student List preview */}
             <div className={styles.card}>
-              <h3 className={styles.cardTitle}><Users size={16} /> Daftar Siswa</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: '8px' }}>
+                <h3 className={styles.cardTitle} style={{ margin: 0 }}><Users size={16} /> Daftar Siswa & Analitik</h3>
+                <select 
+                  className="form-input" 
+                  style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value)}
+                >
+                  <option value="default">Urutan Standar</option>
+                  <option value="hafalan_terbanyak">Hafalan Terbanyak</option>
+                  <option value="hafalan_sedikit">Hafalan Paling Sedikit</option>
+                  <option value="banyak_ulangi">Paling Banyak "Ulangi"</option>
+                  <option value="banyak_lancar">Paling Banyak "Lancar"</option>
+                  <option value="nilai_tertinggi">Nilai Rata-rata Tertinggi</option>
+                  <option value="juz_tertinggi">Juz Tertinggi</option>
+                  <option value="surat_tertinggi">Surat Tertinggi</option>
+                  <option value="kehadiran_terbaik">Kehadiran Terbaik</option>
+                  <option value="kehadiran_terburuk">Kehadiran Terburuk</option>
+                </select>
+              </div>
+              
               <div className={styles.studentList}>
-                {students.map((s: any) => {
-                  const studentProg = calculateStudentProgress(s.id, targets, memorizationRecords)
-                  const overall = calculateOverallProgress(s.id, memorizationRecords)
+                {(() => {
+                  // Enriched students with stats for sorting
+                  let enrichedStudents = students.map((s: any) => {
+                    const studentProg = calculateStudentProgress(s.id, targets, memorizationRecords)
+                    const overall = calculateOverallProgress(s.id, memorizationRecords)
+                    const allMem = memorizationRecords.filter(m => m.student_id === s.id)
+                    const countUlangi = allMem.filter(m => m.status === 'ulangi' || m.status === 'kurang_lancar').length
+                    const countLancar = allMem.filter(m => m.status === 'lancar' || m.status === 'sangat_lancar').length
+                    
+                    // Attendance logic
+                    const allAtt = getSync('tahfidz_attendance_records')
+                    const myAtt = allAtt.filter((a: any) => a.student_id === s.id)
+                    const totalMyAtt = myAtt.length
+                    const hadirs = myAtt.filter((a: any) => a.status === 'hadir').length
+                    const pctAtt = totalMyAtt > 0 ? (hadirs / totalMyAtt) * 100 : 0
+                    
+                    // Decode highest surah to a number for sorting
+                    const sData = SURAHS.find(su => su.name_latin === overall.suratTerakhir)
+                    const highestSuratNum = sData ? sData.number : 999 // fallback if not found
+
+                    return { ...s, studentProg, overall, countUlangi, countLancar, pctAtt, highestSuratNum }
+                  })
+
+                  if (sortMode === 'hafalan_terbanyak') enrichedStudents.sort((a,b) => b.overall.totalSurat - a.overall.totalSurat)
+                  else if (sortMode === 'hafalan_sedikit') enrichedStudents.sort((a,b) => a.overall.totalSurat - b.overall.totalSurat)
+                  else if (sortMode === 'banyak_ulangi') enrichedStudents.sort((a,b) => b.countUlangi - a.countUlangi)
+                  else if (sortMode === 'banyak_lancar') enrichedStudents.sort((a,b) => b.countLancar - a.countLancar)
+                  else if (sortMode === 'nilai_tertinggi') enrichedStudents.sort((a,b) => b.overall.nilaiRataRata - a.overall.nilaiRataRata)
+                  else if (sortMode === 'juz_tertinggi') enrichedStudents.sort((a,b) => b.overall.juzTertinggi - a.overall.juzTertinggi)
+                  else if (sortMode === 'surat_tertinggi') enrichedStudents.sort((a,b) => a.highestSuratNum - b.highestSuratNum)
+                  else if (sortMode === 'kehadiran_terbaik') enrichedStudents.sort((a,b) => b.pctAtt - a.pctAtt)
+                  else if (sortMode === 'kehadiran_terburuk') enrichedStudents.sort((a,b) => a.pctAtt - b.pctAtt)
+
+                  return enrichedStudents.map((s: any) => {
+                    const studentProg = s.studentProg
+                    const overall = s.overall
                   return (
                   <div key={s.id} className={styles.studentRow} style={{ flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', width: '100%', alignItems: 'center' }}>
@@ -442,13 +500,18 @@ export default function ClassDashboard() {
                       </div>
                     </div>
                     {/* Hafalan Keseluruhan Block */}
-                    <div style={{ width: '100%', marginTop: '8px', padding: '8px', background: 'var(--clr-gray-50)', borderRadius: '4px', display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--clr-gray-600)' }}>
-                      <div><strong>Hafalan Keseluruhan:</strong></div>
-                      <div>Total: <strong>{overall.totalSurat} Surat</strong></div>
-                      <div>Juz Tertinggi: <strong>Juz {overall.juzTertinggi}</strong></div>
+                    <div style={{ width: '100%', marginTop: '8px', padding: '8px', background: 'var(--clr-gray-50)', borderRadius: '4px', display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--clr-gray-600)', flexWrap: 'wrap' }}>
+                      <div><strong>Hafalan:</strong> {overall.totalSurat} Surat</div>
+                      <div><strong>Juz Tertinggi:</strong> Juz {overall.juzTertinggi}</div>
+                      <div><strong>Rata-rata Nilai:</strong> {overall.nilaiRataRata}</div>
+                      <div><strong>Lancar:</strong> {s.countLancar}x</div>
+                      <div><strong>Ulangi:</strong> {s.countUlangi}x</div>
+                      <div><strong>Kehadiran:</strong> {Math.round(s.pctAtt)}%</div>
                     </div>
                   </div>
-                )})}
+                )
+              })
+            })()}
               </div>
             </div>
           </div>
@@ -468,6 +531,9 @@ export default function ClassDashboard() {
         
         {/* ── PROGRESS TAB ── */}
         {activeTab === 'progress' && <ClassProgressPage entityId={cls.id} entityType={entityType} entityData={cls} />}
+        
+        {/* ── LAPORAN / JURNAL TAB ── */}
+        {activeTab === 'laporan' && <ClassJournalPage entityId={cls.id} entityType={entityType} entityData={cls} />}
 
         {/* ── PEMBAYARAN TAB (Les/Privat only) ── */}
         {activeTab === 'pembayaran' && (entityType === 'les' || entityType === 'privat') && (
@@ -480,13 +546,15 @@ export default function ClassDashboard() {
             <div className={styles.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
                 <h3 className={styles.cardTitle} style={{ margin: 0 }}><Users size={16} /> Manajemen Siswa</h3>
-                <button 
-                  className={styles.btnPrimary} 
-                  style={{ padding: '8px 16px', fontSize: 'var(--text-sm)' }}
-                  onClick={() => setShowAddStudent(true)}
-                >
-                  + Tambah Siswa
-                </button>
+                {useAuthStore.getState().profile?.role !== 'wali_kelas' && (
+                  <button 
+                    className={styles.btnPrimary} 
+                    style={{ padding: '8px 16px', fontSize: 'var(--text-sm)' }}
+                    onClick={() => setShowAddStudent(true)}
+                  >
+                    + Tambah Siswa
+                  </button>
+                )}
               </div>
               <p style={{ color: 'var(--clr-gray-500)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)' }}>
                 Daftar siswa dan pengaturan khusus untuk {cls.name}
@@ -549,18 +617,22 @@ export default function ClassDashboard() {
                           </td>
                           <td style={{ padding: '12px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                              <button className={styles.btnOutline} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => setShowEditStudent(s)}>
-                                Edit
-                              </button>
-                              <button className={styles.btnOutline} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => {
-                                 if (confirm('Hapus siswa ini? Data akan dipindahkan ke Sampah.')) {
-                                   moveToTrash('students', s.id, s.name, 'Guru', activeWorkspaceId || '')
-                                   setStudents(students.filter(st => st.id !== s.id))
-                                   toast.success('Siswa dipindahkan ke Sampah')
-                                 }
-                              }}>
-                                Hapus
-                              </button>
+                              {useAuthStore.getState().profile?.role !== 'wali_kelas' && (
+                                <>
+                                  <button className={styles.btnOutline} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => setShowEditStudent(s)}>
+                                    Edit
+                                  </button>
+                                  <button className={styles.btnOutline} style={{ padding: '4px 8px', fontSize: '10px' }} onClick={() => {
+                                     if (confirm('Hapus siswa ini? Data akan dipindahkan ke Sampah.')) {
+                                       moveToTrash('students', s.id, s.name, 'Guru', activeWorkspaceId || '')
+                                       setStudents(students.filter(st => st.id !== s.id))
+                                       toast.success('Siswa dipindahkan ke Sampah')
+                                     }
+                                  }}>
+                                    Hapus
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -631,8 +703,10 @@ export default function ClassDashboard() {
                                 <div>
                                   <div style={{ fontWeight: 'bold', color: 'var(--clr-gray-800)' }}>{t.surah}</div>
                                 </div>
+                                {useAuthStore.getState().profile?.role !== 'wali_kelas' && (
+                                  <button onClick={() => handleDeleteTarget(t.id)} className="btn-outline" style={{ borderColor: 'var(--clr-danger)', color: 'var(--clr-danger)', padding: '6px 12px', fontSize: 'var(--text-xs)' }}>Hapus</button>
+                                )}
                               </div>
-                              <button onClick={() => handleDeleteTarget(t.id)} className="btn-outline" style={{ borderColor: 'var(--clr-danger)', color: 'var(--clr-danger)', padding: '6px 12px', fontSize: 'var(--text-xs)' }}>Hapus</button>
                             </div>
                           ))}
                         </div>

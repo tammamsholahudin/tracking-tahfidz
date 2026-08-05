@@ -115,9 +115,13 @@ export default function ClassProgressPage({ entityId, entityType = 'sekolah' }: 
                 <div className={styles.avatar}>{(s.name || '?').charAt(0).toUpperCase()}</div>
                 <div className={styles.info}>
                   <span className={styles.name}>{s.name}</span>
-                  <span className={styles.surah}>
-                    {s.suratSelesai} dari {s.suratTarget} Surat selesai
-                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginTop: '4px', fontSize: '12px', color: 'var(--clr-gray-600)' }}>
+                    <span>Target: <strong>{s.suratSelesai}/{s.suratTarget}</strong></span>
+                    <span>Total Selesai: <strong>{s.totalSurat} Surat</strong></span>
+                    <span>Total Ayat: <strong>{s.totalAyat}</strong></span>
+                    <span>Juz Tertinggi: <strong>{s.highestJuz}</strong></span>
+                    <span style={{ gridColumn: '1 / -1' }}>Capaian Terakhir: <strong>{s.highestSurat} (Ayat {s.lastAyat})</strong></span>
+                  </div>
                 </div>
                 <div className={styles.progWrap}>
                   <div className={styles.progBar}>

@@ -2,16 +2,17 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Shield, Plus, Edit2, UserX, UserCheck,
-  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2
+  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2, Database
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { createClient } from '@supabase/supabase-js'
 import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
+import DataRecovery from './DataRecovery'
 import styles from './MasterIndex.module.css'
 
 // ── Types ──────────────────────────────────────────────────────────────────
-type GRole = 'admin' | 'guru'
+type GRole = 'admin' | 'guru' | 'wali_kelas'
 
 interface Teacher {
   id: string
@@ -51,7 +52,7 @@ const emptyForm = { name: '', email: '', phone: '', role: 'guru' as GRole, passw
 export default function MasterIndex() {
   const { profile, setActiveWorkspaceId } = useAuthStore()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'guru' | 'hak-akses'>('guru')
+  const [activeTab, setActiveTab] = useState<'guru' | 'hak-akses' | 'recovery'>('guru')
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<'semua' | GRole>('semua')
@@ -274,7 +275,14 @@ export default function MasterIndex() {
           className={`${styles.tab} ${activeTab === 'hak-akses' ? styles.tabActive : ''}`}
           onClick={() => setActiveTab('hak-akses')}
         >
-          <Shield size={16} /> Hak Akses
+          <KeyRound size={16} /> Hierarki & Hak Akses
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'recovery' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('recovery')}
+          style={{ color: 'var(--clr-danger)' }}
+        >
+          <Database size={16} /> Recovery Data
         </button>
       </div>
 
@@ -372,9 +380,9 @@ export default function MasterIndex() {
                       <td className={styles.emailCell}>{t.email}</td>
                       <td>{t.phone || '—'}</td>
                       <td>
-                        <span className={`${styles.roleBadge} ${t.role === 'admin' ? styles.roleAdmin : styles.roleGuru}`}>
+                        <span className={`${styles.roleBadge} ${t.role === 'admin' ? styles.roleAdmin : t.role === 'wali_kelas' ? styles.roleWali : styles.roleGuru}`}>
                           {t.role === 'admin' ? <Crown size={11}/> : <BookOpen size={11}/>}
-                          {t.role === 'admin' ? 'Admin' : 'Guru'}
+                          {t.role === 'admin' ? 'Admin' : t.role === 'wali_kelas' ? 'Wali Kelas' : 'Guru'}
                         </span>
                       </td>
                       <td>
@@ -560,7 +568,8 @@ export default function MasterIndex() {
                   onChange={e => setForm(f => ({ ...f, role: e.target.value as GRole }))}
                 >
                   <option value="guru">Guru Tahfidz</option>
-                  <option value="admin">Admin</option>
+                  <option value="wali_kelas">Wali Kelas</option>
+                  <option value="admin">Admin System</option>
                 </select>
               </div>
               {!editTarget && (
@@ -633,6 +642,8 @@ export default function MasterIndex() {
           </div>
         </div>
       )}
+      
+      {activeTab === 'recovery' && <DataRecovery />}
     </div>
   )
 }

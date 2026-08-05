@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { supabase } from '@/lib/supabase'
 
-export type UserRole = 'admin' | 'guru'
+export type UserRole = 'admin' | 'guru' | 'wali_kelas'
 
 export interface TeacherProfile {
   id: string

@@ -14,6 +14,7 @@ interface NavItem {
   icon: React.ReactNode
   label: string
   adminOnly?: boolean
+  adminOrGuruOnly?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -22,7 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/les',       icon: <BookOpen size={20} />,         label: 'Les' },
   { to: '/privat',    icon: <Home size={20} />,             label: 'Privat' },
   { to: '/profil',    icon: <User size={20} />,             label: 'Profil' },
-  { to: '/pengaturan',icon: <Settings size={20} />,         label: 'Pengaturan' },
+  { to: '/pengaturan',icon: <Settings size={20} />,         label: 'Pengaturan', adminOrGuruOnly: true },
   { to: '/master',    icon: <Database size={20} />,         label: 'Master Data', adminOnly: true },
   { to: '/sampah',    icon: <Trash2 size={20} />,           label: 'Sampah' },
 ]
@@ -48,7 +49,12 @@ export default function AppLayout() {
   }
 
   const isAdmin = profile?.role === 'admin'
-  const visibleItems = NAV_ITEMS.filter(item => !item.adminOnly || isAdmin)
+  const isGuru = profile?.role === 'guru'
+  const visibleItems = NAV_ITEMS.filter(item => {
+    if (item.adminOnly && !isAdmin) return false;
+    if ((item as any).adminOrGuruOnly && !isAdmin && !isGuru) return false;
+    return true;
+  })
   
   const [offlineCount, setOfflineCount] = useState(0)
 
@@ -78,38 +84,44 @@ export default function AppLayout() {
   // RESCUE SCRIPT: Reassign orphaned data (e.g. if default admin was deleted) to the current admin
   useEffect(() => {
     if (isAdmin && profile?.id) {
-      try {
-        const teachers = JSON.parse(localStorage.getItem('tahfidz_teachers') || '[]')
-        const validIds = new Set(teachers.map((t: any) => t.id))
-        
-        const rescueData = (key: string) => {
-          const raw = localStorage.getItem(key)
-          if (!raw) return
-          const items = JSON.parse(raw)
-          let changed = false
-          if (Array.isArray(items)) {
-            items.forEach((item: any) => {
-              if (!item.guru_id || !validIds.has(item.guru_id)) {
-                item.guru_id = profile.id
-                changed = true
+      const runRescue = async () => {
+        try {
+          const teachers = JSON.parse(localStorage.getItem('tahfidz_teachers') || '[]')
+          const validIds = new Set(teachers.map((t: any) => t.id))
+          
+          const rescueData = (key: string) => {
+            const raw = localStorage.getItem(key)
+            if (!raw) return
+            const items = JSON.parse(raw)
+            let changed = false
+            if (Array.isArray(items)) {
+              items.forEach((item: any) => {
+                if (!item.guru_id || !validIds.has(item.guru_id)) {
+                  item.guru_id = profile.id
+                  changed = true
+                }
+              })
+              if (changed) {
+                localStorage.setItem(key, JSON.stringify(items))
+                console.log(`[Rescue] Reassigned orphaned data in ${key} to ${profile.id}`)
               }
-            })
-            if (changed) {
-              localStorage.setItem(key, JSON.stringify(items))
-              console.log(`[Rescue] Reassigned orphaned data in ${key} to ${profile.id}`)
             }
           }
-        }
 
-        const tables = [
-          'tahfidz_classes', 'tahfidz_students', 'tahfidz_schedules', 
-          'tahfidz_meetings', 'tahfidz_targets', 'tahfidz_lesson_groups', 
-          'tahfidz_lesson_students', 'tahfidz_private_students'
-        ]
-        tables.forEach(rescueData)
-      } catch (e) {
-        console.error('Rescue script failed:', e)
+          const tables = [
+            'tahfidz_classes', 'tahfidz_students', 'tahfidz_schedules', 
+            'tahfidz_meetings', 'tahfidz_targets', 'tahfidz_lesson_groups', 
+            'tahfidz_lesson_students', 'tahfidz_private_students'
+          ]
+          tables.forEach(rescueData)
+
+          // Auto-restore logic removed as requested.
+
+        } catch (e) {
+          console.error('Rescue script failed:', e)
+        }
       }
+      runRescue()
     }
   }, [isAdmin, profile?.id])
 
@@ -247,7 +259,7 @@ export default function AppLayout() {
             </div>
             <div className={styles.profileInfo}>
               <span className={styles.profileName}>{profile?.name ?? 'Guru'}</span>
-              <span className={styles.profileRole}>{profile?.role === 'admin' ? '👑 Admin' : '📖 Guru'}</span>
+              <span className={styles.profileRole}>{profile?.role === 'admin' ? '👑 Admin' : profile?.role === 'wali_kelas' ? '👨‍🏫 Wali Kelas' : '📖 Guru'}</span>
             </div>
           </div>
           <button className={styles.logoutBtn} onClick={handleLogout}>
