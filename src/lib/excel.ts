@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx'
 import { getSettings } from '@/store/settingsStore'
 import { useAuthStore } from '@/store/authStore'
 
-export function exportAttendanceExcel(data: any[], classData: any, filename = 'Laporan_Absensi.xlsx') {
+export function exportAttendanceExcel(data: any[], classData: any, filename = 'Laporan_Absensi.xlsx', returnBlob = false) {
   // Create a new workbook
   const wb = XLSX.utils.book_new()
   
@@ -54,10 +54,14 @@ export function exportAttendanceExcel(data: any[], classData: any, filename = 'L
   ws['!freeze'] = { xSplit: 2, ySplit: 12, topLeftCell: 'C13', activePane: 'bottomRight', state: 'frozen' }
 
   XLSX.utils.book_append_sheet(wb, ws, 'Absensi')
+  if (returnBlob) {
+    const ab = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    return new Blob([ab], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  }
   XLSX.writeFile(wb, filename)
 }
 
-export function exportMemorizationExcel(data: any[], classData: any, filename = 'Laporan_Hafalan.xlsx') {
+export function exportMemorizationExcel(data: any[], classData: any, filename = 'Laporan_Hafalan.xlsx', returnBlob = false) {
   const wb = XLSX.utils.book_new()
   
   const semester = classData.semester || 'Ganjil'
@@ -131,10 +135,14 @@ export function exportMemorizationExcel(data: any[], classData: any, filename = 
   ws['!freeze'] = { xSplit: 2, ySplit: 12, topLeftCell: 'C13', activePane: 'bottomRight', state: 'frozen' }
 
   XLSX.utils.book_append_sheet(wb, ws, 'Riwayat Hafalan')
+  if (returnBlob) {
+    const ab = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    return new Blob([ab], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  }
   XLSX.writeFile(wb, filename)
 }
 
-export function exportJournalExcel(meetings: any[], students: any[], allAtt: any[], allMem: any[], classData: any, filename = 'Jurnal_Pembelajaran.xlsx') {
+export function exportJournalExcel(meetings: any[], students: any[], allAtt: any[], allMem: any[], classData: any, filename = 'Jurnal_Pembelajaran.xlsx', returnBlob = false) {
   const wb = XLSX.utils.book_new()
   
   const formattedData = meetings.map((m, idx) => {
@@ -179,6 +187,10 @@ export function exportJournalExcel(meetings: any[], students: any[], allAtt: any
   ]
 
   XLSX.utils.book_append_sheet(wb, ws, 'Jurnal')
+  if (returnBlob) {
+    const ab = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    return new Blob([ab], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  }
   XLSX.writeFile(wb, filename)
 }
 

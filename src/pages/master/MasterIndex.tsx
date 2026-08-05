@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Shield, Plus, Edit2, UserX, UserCheck,
-  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2
+  KeyRound, X, Eye, EyeOff, Search, Crown, BookOpen, Trash2, Link as LinkIcon
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { createClient } from '@supabase/supabase-js'
 import { getSync, fetchBackground, mutateData } from '@/lib/db'
 import toast from 'react-hot-toast'
+import PortalManagement from '@/components/PortalManagement'
 import styles from './MasterIndex.module.css'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ const emptyForm = { name: '', email: '', phone: '', role: 'guru' as GRole, passw
 export default function MasterIndex() {
   const { profile, setActiveWorkspaceId } = useAuthStore()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'guru' | 'hak-akses'>('guru')
+  const [activeTab, setActiveTab] = useState<'guru' | 'hak-akses' | 'portal'>('guru')
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<'semua' | GRole>('semua')
@@ -275,6 +276,12 @@ export default function MasterIndex() {
           onClick={() => setActiveTab('hak-akses')}
         >
           <KeyRound size={16} /> Hierarki & Hak Akses
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'portal' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('portal')}
+        >
+          <LinkIcon size={16} /> Portal Akses
         </button>
       </div>
       {/* ── TAB DATA GURU ── */}
@@ -634,7 +641,9 @@ export default function MasterIndex() {
         </div>
       )}
       
-      {/* Render selected tab content */}
+      {activeTab === 'portal' && (
+        <PortalManagement />
+      )}
     </div>
   )
 }

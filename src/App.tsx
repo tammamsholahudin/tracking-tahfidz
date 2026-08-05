@@ -18,6 +18,7 @@ const LessonIndex = lazy(() => import('@/pages/lesson/LessonIndex'))
 const PrivateIndex = lazy(() => import('@/pages/private/PrivateIndex'))
 const TrashIndex = lazy(() => import('@/pages/TrashIndex'))
 const ParentPortal = lazy(() => import('@/pages/portal/ParentPortal'))
+const PublicPortal = lazy(() => import('@/pages/portal/PublicPortal'))
 const AktivitasTerakhir = lazy(() => import('@/pages/AktivitasTerakhir'))
 
 import '@/styles/global.css'
@@ -76,6 +77,7 @@ export default function App() {
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/portal/:classId" element={<ParentPortal />} />
+            <Route path="/p/:linkId" element={<PublicPortal />} />
 
             {/* Protected */}
             <Route element={<AuthGuard />}>

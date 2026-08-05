@@ -4,7 +4,7 @@ import { getSettings } from '@/store/settingsStore'
 import { useAuthStore } from '@/store/authStore'
 import { getSync } from '@/lib/db'
 
-export function exportAttendancePDF(data: any[], classData: any, filename = 'Laporan_Absensi.pdf', meetingsData: any[] = []) {
+export function exportAttendancePDF(data: any[], classData: any, filename = 'Laporan_Absensi.pdf', meetingsData: any[] = [], returnBlob = false) {
   const doc = new jsPDF('landscape')
 
   // --- HEADER ---
@@ -137,10 +137,11 @@ export function exportAttendancePDF(data: any[], classData: any, filename = 'Lap
     doc.text(`Halaman ${i} dari ${pageCount}`, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10)
   }
 
+  if (returnBlob) return doc.output('blob')
   doc.save(filename)
 }
 
-export function exportProgressPDF(data: any[], classData: any, filename = 'Laporan_Progress_Hafalan.pdf') {
+export function exportProgressPDF(data: any[], classData: any, filename = 'Laporan_Progress_Hafalan.pdf', returnBlob = false) {
   const doc = new jsPDF('portrait')
 
   const academicYear = classData.academic_year || '2026/2027'
@@ -271,10 +272,11 @@ export function exportProgressPDF(data: any[], classData: any, filename = 'Lapor
     doc.text('Tracking Tahfidz MAM! - Halaman ' + String(i) + ' dari ' + String(pageCount), 14, doc.internal.pageSize.height - 10)
   }
 
+  if (returnBlob) return doc.output('blob')
   doc.save(filename)
 }
 
-export function exportJournalPDF(meetings: any[], students: any[], allAtt: any[], allMem: any[], classData: any, filename: string) {
+export function exportJournalPDF(meetings: any[], students: any[], allAtt: any[], allMem: any[], classData: any, filename: string, returnBlob = false) {
   const doc = new jsPDF()
   const { institutionName: instName, institutionSubtitle: instSub } = getSettings()
   const homeroom = getSync('tahfidz_users').find((u: any) => u.id === classData.wali_kelas_id)?.name || 'Wali Kelas'
@@ -380,6 +382,6 @@ export function exportJournalPDF(meetings: any[], students: any[], allAtt: any[]
     doc.setFontSize(8)
     doc.text(`Tracking Tahfidz MAM! - Dicetak: ${new Date().toLocaleDateString('id-ID')}`, 14, doc.internal.pageSize.height - 10)
   })
-
+  if (returnBlob) return doc.output('blob')
   doc.save(filename)
 }
