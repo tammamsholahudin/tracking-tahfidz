@@ -210,10 +210,14 @@ export default function Pengaturan() {
               </div>
             </div>
 
-            <div className={styles.aboutSection}>
-              <div className={styles.logoPlaceholder}>📖</div>
+            <div className={styles.aboutBox}>
+              <div className={styles.aboutLogo}>
+                📖
+              </div>
               <h2 className={styles.aboutName}>Tracking Tahfidz MAM!</h2>
-              <p className={styles.aboutVersion}>Version 1.1<br/>Release Date: 5 Agustus 2026</p>
+              <p className={styles.aboutDesc}>
+                Version 1.1 — Release 5 Agustus 2026
+              </p>
               <p className={styles.aboutDesc}>
                 Alat kerja Guru Tahfidz untuk mencatat absensi, setoran hafalan, dan perkembangan santri.
               </p>
