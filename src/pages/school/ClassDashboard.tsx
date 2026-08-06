@@ -524,7 +524,10 @@ export default function ClassDashboard() {
             entityType={entityType} 
             entityName={cls.name} 
             editMeetingId={editMeetingId}
-            onCloseEdit={() => setEditMeetingId(null)}
+            onCloseEdit={() => {
+              setEditMeetingId(null)
+              setActiveTab('arsip_pertemuan')
+            }}
           />
         )}
 

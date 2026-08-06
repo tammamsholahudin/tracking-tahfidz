@@ -374,12 +374,16 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah', edi
     
     toast.success(isEdit ? 'Pembaruan pertemuan berhasil disimpan!' : 'Pertemuan selesai & difinalisasi!')
     
-    if (onCloseEdit) {
+    if (isEdit && onCloseEdit) {
       onCloseEdit()
     } else {
-      setTimeout(() => {
-        window.location.reload()
-      }, 500)
+      // Reset ke awal untuk siap mencatat pertemuan berikutnya tanpa reload
+      setMeetingNotes('')
+      setMemorizations({})
+      const initAtt: Record<string, AttStatus> = {}
+      students.forEach((s: any) => { initAtt[s.id] = 'hadir' })
+      setAttendance(initAtt)
+      setActiveTab('absensi')
     }
   }
 
