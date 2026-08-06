@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronUp, FileText, CheckCircle2, ClipboardList, BookOpen, Edit2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileText, CheckCircle2, ClipboardList, BookOpen, Edit2, Trash2 } from 'lucide-react'
 import { getSync, fetchBackground } from '@/lib/db'
 import { useAuthStore } from '@/store/authStore'
 
@@ -166,24 +166,61 @@ export default function ArchiveMeetingPage({ entityId, entityType: _entityType, 
                             <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--clr-gray-700)', margin: 0 }}>
                               Ringkasan Pertemuan
                             </h4>
-                            {onEditMeeting && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              {onEditMeeting && (
+                                <button 
+                                  onClick={() => {
+                                    if (confirm('Anda akan membuka kembali pertemuan yang sudah difinalisasi. Seluruh perubahan pada mode edit ini akan dicatat dalam riwayat audit. Lanjutkan?')) {
+                                      onEditMeeting(m.id)
+                                    }
+                                  }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: '6px',
+                                    padding: '8px 16px', borderRadius: '8px',
+                                    border: '1px solid var(--clr-primary-200)',
+                                    background: 'var(--clr-primary-50)', color: 'var(--clr-primary-700)',
+                                    fontWeight: 600, fontSize: '13px', cursor: 'pointer'
+                                  }}
+                                >
+                                  <Edit2 size={16} /> Edit Pertemuan
+                                </button>
+                              )}
                               <button 
-                                onClick={() => {
-                                  if (confirm('Anda akan membuka kembali pertemuan yang sudah difinalisasi. Seluruh perubahan pada mode edit ini akan dicatat dalam riwayat audit. Lanjutkan?')) {
-                                    onEditMeeting(m.id)
+                                onClick={async () => {
+                                  if (confirm('PERINGATAN: Anda yakin ingin menghapus pertemuan ini? SELURUH data absensi dan setoran pada pertemuan ini akan terhapus permanen!')) {
+                                    import('@/lib/db').then(async ({ mutateData, getSync }) => {
+                                      // Hapus dari cache lokal agar langsung hilang dari UI
+                                      const oldAtt = getSync('tahfidz_attendance_records').filter((a:any) => a.meeting_id === m.id)
+                                      for (const old of oldAtt) {
+                                        await mutateData('attendance_records', 'DELETE', { id: old.id }, 'tahfidz_attendance_records')
+                                      }
+                                      
+                                      const oldMem = getSync('tahfidz_memorization_records').filter((mem:any) => mem.meeting_id === m.id)
+                                      for (const old of oldMem) {
+                                        await mutateData('memorization_records', 'DELETE', { id: old.id }, 'tahfidz_memorization_records')
+                                      }
+                                      
+                                      await mutateData('meetings', 'DELETE', { id: m.id }, 'tahfidz_meetings')
+                                      
+                                      import('react-hot-toast').then(toast => {
+                                        toast.default.success('Pertemuan berhasil dihapus.')
+                                      })
+                                      // Force reload to refresh UI states completely
+                                      setTimeout(() => window.location.reload(), 500)
+                                    })
                                   }
                                 }}
                                 style={{
                                   display: 'flex', alignItems: 'center', gap: '6px',
                                   padding: '8px 16px', borderRadius: '8px',
-                                  border: '1px solid var(--clr-primary-200)',
-                                  background: 'var(--clr-primary-50)', color: 'var(--clr-primary-700)',
+                                  border: '1px solid var(--clr-danger)',
+                                  background: 'transparent', color: 'var(--clr-danger)',
                                   fontWeight: 600, fontSize: '13px', cursor: 'pointer'
                                 }}
                               >
-                                <Edit2 size={16} /> Edit Pertemuan
+                                <Trash2 size={16} /> Hapus Pertemuan
                               </button>
-                            )}
+                            </div>
                           </div>
 
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
