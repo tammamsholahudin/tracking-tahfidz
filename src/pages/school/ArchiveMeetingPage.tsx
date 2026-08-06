@@ -187,26 +187,21 @@ export default function ArchiveMeetingPage({ entityId, entityType: _entityType, 
                               )}
                               <button 
                                 onClick={async () => {
-                                  if (confirm('PERINGATAN: Anda yakin ingin menghapus pertemuan ini? SELURUH data absensi dan setoran pada pertemuan ini akan terhapus permanen!')) {
-                                    import('@/lib/db').then(async ({ mutateData, getSync }) => {
-                                      // Hapus dari cache lokal agar langsung hilang dari UI
-                                      const oldAtt = getSync('tahfidz_attendance_records').filter((a:any) => a.meeting_id === m.id)
-                                      for (const old of oldAtt) {
-                                        await mutateData('attendance_records', 'DELETE', { id: old.id }, 'tahfidz_attendance_records')
-                                      }
+                                  if (confirm('PERINGATAN: Anda yakin ingin menghapus pertemuan ini? SELURUH data absensi dan setoran pada pertemuan ini akan dihapus dan dipindahkan ke Sampah.')) {
+                                    import('@/lib/trash').then(async ({ moveMeetingToTrash }) => {
+                                      const { activeWorkspaceId } = useAuthStore.getState()
+                                      const authRes = await (await import('@/lib/supabase')).supabase.auth.getUser()
+                                      const userEmail = authRes?.data?.user?.email || 'Admin'
+                                      const dateStr = new Date(m.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
                                       
-                                      const oldMem = getSync('tahfidz_memorization_records').filter((mem:any) => mem.meeting_id === m.id)
-                                      for (const old of oldMem) {
-                                        await mutateData('memorization_records', 'DELETE', { id: old.id }, 'tahfidz_memorization_records')
-                                      }
-                                      
-                                      await mutateData('meetings', 'DELETE', { id: m.id }, 'tahfidz_meetings')
+                                      await moveMeetingToTrash(m.id, `Pertemuan ${dateStr}`, userEmail, activeWorkspaceId || '')
                                       
                                       import('react-hot-toast').then(toast => {
-                                        toast.default.success('Pertemuan berhasil dihapus.')
+                                        toast.default.success('Pertemuan berhasil dipindahkan ke Sampah.')
                                       })
-                                      // Force reload to refresh UI states completely
-                                      setTimeout(() => window.location.reload(), 500)
+                                      // Hapus dari state UI meetings secara manual agar tidak perlu reload
+                                      setMeetings(prev => prev.filter(mtg => mtg.id !== m.id))
+                                      setExpandedId(null)
                                     })
                                   }
                                 }}

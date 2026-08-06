@@ -59,6 +59,69 @@ export async function moveToTrash(tableName: string, itemId: string, itemName: s
   }
 }
 
+export async function moveMeetingToTrash(meetingId: string, meetingName: string, deletedBy: string, guruId: string) {
+  // 1. Dapatkan data sinkron dari cache lokal secara instan
+  const meeting = getSync('tahfidz_meetings').find((m: any) => m.id === meetingId)
+  const attendances = getSync('tahfidz_attendance_records').filter((a: any) => a.meeting_id === meetingId)
+  const memorizations = getSync('tahfidz_memorization_records').filter((m: any) => m.meeting_id === meetingId)
+
+  const now = Date.now()
+  const trashItems: any[] = []
+
+  // Siapkan data meeting untuk trash
+  trashItems.push({
+    id: `trash-${now}-${meetingId}`,
+    original_table: 'meetings',
+    item_id: meetingId,
+    item_name: meetingName,
+    data: meeting || { id: meetingId },
+    deleted_by: deletedBy,
+    guru_id: guruId
+  })
+
+  // Siapkan data absensi untuk trash
+  attendances.forEach((a: any) => {
+    trashItems.push({
+      id: `trash-${now}-${a.id}`,
+      original_table: 'attendance_records',
+      item_id: a.id,
+      item_name: `Absensi ${a.student_id}`,
+      data: a,
+      deleted_by: deletedBy,
+      guru_id: guruId
+    })
+  })
+
+  // Siapkan data setoran untuk trash
+  memorizations.forEach((m: any) => {
+    trashItems.push({
+      id: `trash-${now}-${m.id}`,
+      original_table: 'memorization_records',
+      item_id: m.id,
+      item_name: `Setoran ${m.student_id}`,
+      data: m,
+      deleted_by: deletedBy,
+      guru_id: guruId
+    })
+  })
+
+  // 2. Simpan semuanya ke dalam Trash secara massal (Batch Insert)
+  mutateData('audit_logs', 'INSERT', trashItems, 'tahfidz_audit_logs')
+
+  // 3. Update UI secara INSTAN dengan menghapus dari local cache 
+  // Kita bypass Supabase direct query dan hanya update localStorage untuk kecepatan maksimum di frontend
+  const oldAttCache = getSync('tahfidz_attendance_records')
+  localStorage.setItem('tahfidz_attendance_records', JSON.stringify(oldAttCache.filter((a: any) => a.meeting_id !== meetingId)))
+  
+  const oldMemCache = getSync('tahfidz_memorization_records')
+  localStorage.setItem('tahfidz_memorization_records', JSON.stringify(oldMemCache.filter((m: any) => m.meeting_id !== meetingId)))
+
+  // 4. Hapus meeting utama (Supabase ON DELETE CASCADE akan membersihkan sisanya di backend)
+  mutateData('meetings', 'DELETE', { id: meetingId }, 'tahfidz_meetings')
+
+  return true
+}
+
 export function restoreFromTrash(trashId: string) {
   // Fetch from local cache first
   const logs = getSync('tahfidz_audit_logs') as any[]
