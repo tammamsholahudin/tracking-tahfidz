@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronUp, FileText, CheckCircle2, ClipboardList, BookOpen, Edit2 } from 'lucide-react'
-import { getSync } from '@/lib/db'
+import { getSync, fetchBackground } from '@/lib/db'
+import { useAuthStore } from '@/store/authStore'
 
 export default function ArchiveMeetingPage({ entityId, entityType: _entityType, onEditMeeting }: { entityId: string, entityType: string, onEditMeeting?: (meetingId: string) => void }) {
   const [meetings, setMeetings] = useState<any[]>([])
@@ -9,6 +10,16 @@ export default function ArchiveMeetingPage({ entityId, entityType: _entityType, 
   
   useEffect(() => {
     loadData()
+    // Fetch data terbaru dari Supabase di background agar cache selalu segar
+    // Ini adalah penyebab utama bug: tanpa fetch ini, attendance bisa kosong
+    const { activeWorkspaceId } = useAuthStore.getState()
+    if (navigator.onLine && activeWorkspaceId) {
+      Promise.all([
+        fetchBackground('attendance_records', 'tahfidz_attendance_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('memorization_records', 'tahfidz_memorization_records', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+        fetchBackground('meetings', 'tahfidz_meetings', { filterColumn: 'guru_id', filterValue: activeWorkspaceId }),
+      ]).catch(console.error)
+    }
     window.addEventListener('local_cache_updated', loadData)
     return () => window.removeEventListener('local_cache_updated', loadData)
   }, [entityId])
@@ -20,20 +31,24 @@ export default function ArchiveMeetingPage({ entityId, entityType: _entityType, 
   }
 
   const getMeetingDetails = (meetingId: string) => {
+    // ✅ FIX #3: Filter attendance berdasarkan meeting_id (sudah benar)
     const att = getSync('tahfidz_attendance_records').filter((a: any) => a.meeting_id === meetingId)
     
-    // We try to match memorizations to this meeting by date
-    const meetingDate = meetings.find(m => m.id === meetingId)?.date
-    const mems = getSync('tahfidz_memorization_records').filter((m: any) => {
-      if (m.class_id === entityId) {
-        const mDate = new Date(m.created_at || m.date).toDateString()
-        const mtgDate = new Date(meetingDate).toDateString()
-        return mDate === mtgDate
-      }
-      return false
-    })
+    // ✅ FIX #1: Filter memorization berdasarkan meeting_id, BUKAN tanggal
+    // Bug sebelumnya: filter berdasarkan tanggal → setoran bisa tercampur antar pertemuan
+    // dan jika ada perbedaan timezone, toDateString() bisa menghasilkan tanggal yang berbeda
+    const mems = getSync('tahfidz_memorization_records').filter((m: any) => m.meeting_id === meetingId)
 
-    const students = getSync('tahfidz_students').filter((s: any) => s.class_id === entityId)
+    // Ambil students sesuai entity type
+    let students: any[] = []
+    if (_entityType === 'les') {
+      students = getSync('tahfidz_lesson_students').filter((s: any) => s.group_id === entityId)
+    } else if (_entityType === 'privat') {
+      const p = getSync('tahfidz_private_students').find((x: any) => x.id === entityId)
+      if (p) students = [p]
+    } else {
+      students = getSync('tahfidz_students').filter((s: any) => s.class_id === entityId)
+    }
     
     const rekap = {
       hadir: att.filter((a: any) => a.status === 'hadir').length,
@@ -71,11 +86,11 @@ export default function ArchiveMeetingPage({ entityId, entityType: _entityType, 
             const isExpanded = expandedId === m.id
             const dateStr = new Date(m.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
             
-            // Calculate quick summary for the header
+            // ✅ FIX #5: Calculate quick summary untuk header — gunakan meeting_id, BUKAN tanggal
             const attList = getSync('tahfidz_attendance_records').filter((a: any) => a.meeting_id === m.id)
             const countHadir = attList.filter((a: any) => a.status === 'hadir').length
-            const mDate = new Date(m.date).toDateString()
-            const memList = getSync('tahfidz_memorization_records').filter((mem: any) => mem.class_id === entityId && new Date(mem.created_at || mem.date).toDateString() === mDate)
+            // ✅ FIX: Filter memorization berdasarkan meeting_id bukan tanggal
+            const memList = getSync('tahfidz_memorization_records').filter((mem: any) => mem.meeting_id === m.id)
 
             return (
               <div key={m.id} style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--clr-gray-200)', overflow: 'hidden' }}>

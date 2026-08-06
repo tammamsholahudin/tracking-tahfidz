@@ -283,10 +283,31 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah', edi
     }
 
     const newAttRecords = students.map(s => {
-      let existingId = `att-${Date.now()}-${s.id}`
+      // ✅ FIX #4: ID attendance harus deterministik agar tidak ada duplikasi
+      // Bug sebelumnya: `att-${Date.now()}-${s.id}` — Date.now() berbeda setiap kali dipanggil
+      // sehingga setiap finalisasi menghasilkan record baru, bukan update record lama
+      const deterministicId = `att-${meetingId}-${s.id}`
+      let existingId = deterministicId
       if (isEdit) {
         const oldAtt = getSync('tahfidz_attendance_records').find((a:any) => a.meeting_id === meetingId && a.student_id === s.id)
         if (oldAtt) existingId = oldAtt.id
+      }
+      // ✅ FIX #2: Validasi ketat — pastikan attendance[s.id] adalah nilai yang valid
+      // Bug sebelumnya: jika attendance[s.id] === undefined, akan tersimpan sebagai 'alpa'
+      // Sekarang: jika undefined, kita cek dulu dari cache lokal
+      const validStatuses = ['hadir', 'izin', 'sakit', 'alpa']
+      let finalStatus: string = attendance[s.id]
+      if (!validStatuses.includes(finalStatus)) {
+        // Fallback: coba baca dari cache lokal
+        const existingRecord = getSync('tahfidz_attendance_records').find((a:any) => a.meeting_id === meetingId && a.student_id === s.id)
+        if (existingRecord && validStatuses.includes(existingRecord.status)) {
+          finalStatus = existingRecord.status
+        } else {
+          // Default terakhir: 'hadir' (bukan 'alpa') — lebih aman secara pedagogis
+          // karena jika guru sudah mengisi form absensi, default hadir lebih masuk akal
+          console.warn(`[MeetingWorkspace] attendance[${s.id}] tidak valid (${attendance[s.id]}), menggunakan 'hadir' sebagai fallback`)
+          finalStatus = 'hadir'
+        }
       }
       return {
         id: existingId,
@@ -294,7 +315,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah', edi
         class_id: entityId,
         guru_id: activeWorkspaceId,
         student_id: s.id,
-        status: attendance[s.id] || 'alpa',
+        status: finalStatus,
         created_at: meetingDate
       }
     })
