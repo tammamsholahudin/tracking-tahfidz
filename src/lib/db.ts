@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 export interface OfflineMutation {
   id: string
   table: string
-  type: 'INSERT' | 'UPDATE' | 'DELETE'
+  type: 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT'
   payload: any
   timestamp: number
 }
@@ -40,6 +40,9 @@ export const flushOfflineQueue = async () => {
       } else if (mut.type === 'DELETE') {
         const { error } = await supabase.from(mut.table).delete().eq('id', mut.payload.id)
         if (error) console.error(`DB Error flushing queue for ${mut.table}:`, error)
+      } else if (mut.type === 'UPSERT') {
+        const { error } = await supabase.from(mut.table).upsert(mut.payload)
+        if (error) console.error(`DB Error flushing queue for ${mut.table}:`, error)
       }
       
       // Remove from queue upon processing (whether success or DB error like duplicate constraint)
@@ -65,7 +68,7 @@ if (typeof window !== 'undefined') {
 /**
  * Helper to update local cache
  */
-const updateLocalCache = (type: 'INSERT' | 'UPDATE' | 'DELETE', payload: any, cacheKey: string) => {
+const updateLocalCache = (type: 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT', payload: any, cacheKey: string) => {
   const currentCache = JSON.parse(localStorage.getItem(cacheKey) || '[]')
   let newCache = [...currentCache]
   
@@ -94,6 +97,24 @@ const updateLocalCache = (type: 'INSERT' | 'UPDATE' | 'DELETE', payload: any, ca
     } else {
       newCache = newCache.filter((item: any) => item.id !== payload.id)
     }
+  } else if (type === 'UPSERT') {
+    if (Array.isArray(payload)) {
+      payload.forEach(p => {
+        const idx = newCache.findIndex((item: any) => item.id === p.id)
+        if (idx !== -1) {
+          newCache[idx] = { ...newCache[idx], ...p }
+        } else {
+          newCache.push(p)
+        }
+      })
+    } else {
+      const idx = newCache.findIndex((item: any) => item.id === payload.id)
+      if (idx !== -1) {
+        newCache[idx] = { ...newCache[idx], ...payload }
+      } else {
+        newCache.push(payload)
+      }
+    }
   }
   
   localStorage.setItem(cacheKey, JSON.stringify(newCache))
@@ -105,7 +126,7 @@ const updateLocalCache = (type: 'INSERT' | 'UPDATE' | 'DELETE', payload: any, ca
  */
 export const mutateData = async (
   table: string, 
-  type: 'INSERT' | 'UPDATE' | 'DELETE', 
+  type: 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT', 
   payload: any, 
   cacheKey: string
 ) => {
@@ -132,6 +153,9 @@ export const mutateData = async (
       error = err
     } else if (type === 'DELETE') {
       const { error: err } = await supabase.from(table).delete().eq('id', payload.id)
+      error = err
+    } else if (type === 'UPSERT') {
+      const { error: err } = await supabase.from(table).upsert(payload)
       error = err
     }
     
@@ -173,26 +197,41 @@ export const fetchBackground = async (
   if (typeof navigator !== 'undefined' && !navigator.onLine) return
 
   try {
-    let query = supabase.from(table).select('*')
-    if (options?.filterColumn && options?.filterValue) {
-      query = query.eq(options.filterColumn, options.filterValue)
-    }
+    let allData: any[] = []
+    let page = 0
+    const limit = 1000
+    
+    while (true) {
+      // ✅ FIX: Supabase PostgREST memiliki default limit 1000 rows.
+      // Kita harus mem-paginate data agar record baru tidak terpotong
+      // dan tidak menimpa cache dengan data lama yang tidak lengkap.
+      let query = supabase.from(table).select('*').range(page * limit, (page + 1) * limit - 1)
+      if (options?.filterColumn && options?.filterValue) {
+        query = query.eq(options.filterColumn, options.filterValue)
+      }
 
-    const { data, error } = await query
-    if (error) throw error
+      const { data, error } = await query
+      if (error) throw error
 
-    if (data) {
-      const currentCache = localStorage.getItem(cacheKey)
-      const newDataStr = JSON.stringify(data)
-      
-      // Update if data changed
-      if (currentCache !== newDataStr) {
-        localStorage.setItem(cacheKey, newDataStr)
-        window.dispatchEvent(new Event('local_cache_updated'))
+      if (data && data.length > 0) {
+        allData = [...allData, ...data]
+        if (data.length < limit) break
+        page++
+      } else {
+        break
       }
     }
+
+    const currentCache = localStorage.getItem(cacheKey)
+    const newDataStr = JSON.stringify(allData)
+    
+    // Update if data changed
+    if (currentCache !== newDataStr) {
+      localStorage.setItem(cacheKey, newDataStr)
+      window.dispatchEvent(new Event('local_cache_updated'))
+    }
   } catch (err) {
-    console.error('fetchBackground error', err)
+    console.error(`fetchBackground error for ${table}:`, err)
   }
 }
 

@@ -321,13 +321,7 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah', edi
     })
     
     if (newAttRecords.length > 0) {
-      if (isEdit) {
-         const oldAtt = getSync('tahfidz_attendance_records').filter((a:any) => a.meeting_id === meetingId)
-         for (const old of oldAtt) {
-            await mutateData('attendance_records', 'DELETE', { id: old.id }, 'tahfidz_attendance_records')
-         }
-      }
-      const attRes = await mutateData('attendance_records', 'INSERT', newAttRecords, 'tahfidz_attendance_records')
+      const attRes = await mutateData('attendance_records', 'UPSERT', newAttRecords, 'tahfidz_attendance_records')
       if (attRes && !attRes.success) {
         toast.error(`Gagal menyimpan absensi: ${attRes.error?.message || 'Error Database'}`)
         return
@@ -359,15 +353,8 @@ export default function MeetingWorkspace({ entityId, entityType = 'sekolah', edi
       }
     })
 
-    if (isEdit) {
-      const oldMems = getSync('tahfidz_memorization_records').filter((m:any) => m.meeting_id === meetingId)
-      for (const old of oldMems) {
-         await mutateData('memorization_records', 'DELETE', { id: old.id }, 'tahfidz_memorization_records')
-      }
-    }
-
     if (newMemRecords.length > 0) {
-      const memRes = await mutateData('memorization_records', 'INSERT', newMemRecords, 'tahfidz_memorization_records')
+      const memRes = await mutateData('memorization_records', 'UPSERT', newMemRecords, 'tahfidz_memorization_records')
       if (memRes && !memRes.success) {
         toast.error(`Gagal menyimpan setoran hafalan: ${memRes.error?.message || 'Error Database'}`)
         return
