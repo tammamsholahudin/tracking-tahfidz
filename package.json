@@ -1,7 +1,7 @@
 {
   "name": "tahfidz-mam",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -31,8 +31,10 @@
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-legacy": "^8.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
+    "terser": "^5.49.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
   }

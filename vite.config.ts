@@ -1,16 +1,30 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import legacy from '@vitejs/plugin-legacy'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    legacy({
+      targets: [
+        '> 0.5%',
+        'last 2 versions',
+        'Firefox ESR',
+        'not dead',
+        'Android >= 5',
+        'iOS >= 10',
+        'OperaMini all'
+      ]
+    })
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
-    target: 'esnext',
+    target: 'es2015',
     rollupOptions: {
       output: {
         manualChunks(id) {
